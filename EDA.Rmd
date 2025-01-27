@@ -23,6 +23,7 @@ bp <- read.csv("Raw Data/UWDataBP.csv")
 diag <- read.csv("Raw Data/UWDataDiagnoses.csv")
 enc <- read.csv("Raw Data/UWDataEncounters.csv")
 panel <- read.csv("Raw Data/UWDataPanel.csv")
+koh.attend <- read.csv("Raw Data/UWDataKOHAttendance.csv")
 ```
 
 There are 673 patients that are marked as having prediabetes as well as type II diabetes. Not a big deal for the actual analysis itself since we will combine these two indicator variables into one variable, but we should clear this up for our descriptive statistics.
@@ -109,6 +110,7 @@ table1 <- right_join(diag.nona.18, targetpop, by = "UniqueIdentifier")
 
 # create subset of only KOH participants
 koh <- table1 %>% filter(KOHParticipant == 1)
+koh %>% filter(Language !='Marshallese' & Race !='Marshallese')
 ```
 
 table 1 for KOH only - need to add average number of KOH meetings attended
