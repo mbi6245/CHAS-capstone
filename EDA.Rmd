@@ -1,0 +1,172 @@
+---
+title: "Capstone EDA"
+author: "Gabby Lopez"
+date: "`r Sys.Date()`"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(tidyverse)
+library(gtsummary)
+library(lubridate)
+library(naniar)
+library(flextable)
+```
+
+
+```{r cars, include=FALSE, echo=FALSE}
+a1c <- read.csv("Raw Data/UWDataA1cs.csv")
+bmi <- read.csv("Raw Data/UWDataBMIs.csv")
+bp <- read.csv("Raw Data/UWDataBP.csv")
+diag <- read.csv("Raw Data/UWDataDiagnoses.csv")
+enc <- read.csv("Raw Data/UWDataEncounters.csv")
+panel <- read.csv("Raw Data/UWDataPanel.csv")
+```
+
+There are 673 patients that are marked as having prediabetes as well as type II diabetes. Not a big deal for the actual analysis itself since we will combine these two indicator variables into one variable, but we should clear this up for our descriptive statistics.
+```{r, include=FALSE, echo=FALSE}
+pre.t2dm <- diag %>% filter(PreDM == 1 & T2DM == 1)
+```
+
+```{r, include=FALSE, echo=FALSE}
+# change date variable to date type and remove NA values in necessary fields
+a1c$Date <- mdy(a1c$Date)
+a1c.nona <- a1c %>% filter(!is.na(A1c) & !is.na(Date))
+
+bmi$Date <- mdy(bmi$Date)
+bmi.nona <- bmi %>% filter(!is.na(Date) & !is.na(BMI))
+
+bp$Date <- mdy(bp$Date)
+bp.nona <- bp %>% filter(!is.na(Date) & !is.na(Systolic))
+
+enc$Date <- mdy(enc$Date)
+enc.nona <- enc %>% filter(!is.na(Date) & !is.na(ServiceLine))
+
+diag.nona <- diag %>% filter(!is.na(HTN) & !is.na(PreDM) & !is.na(T2DM))
+# create diabetes indicator for both pre and T2DM
+diag.nona <- diag.nona %>% mutate(Diabetes = ifelse((PreDM == 1 | T2DM == 1), 1, 0))
+```
+
+```{r, include=FALSE, echo=FALSE}
+# Remove anyone under the age of 18
+age <- panel %>% select(c("UniqueIdentifier","age"))
+a1c.nona.18 <- left_join(a1c.nona, age, by = "UniqueIdentifier")
+a1c.nona.18 <- a1c.nona.18 %>% filter(age >= 18)
+
+bmi.nona.18 <- left_join(bmi.nona, age, by = "UniqueIdentifier")
+bmi.nona.18 <- bmi.nona.18 %>% filter(age >= 18)
+
+bp.nona.18 <- left_join(bp.nona, age, by = "UniqueIdentifier")
+bp.nona.18 <- bp.nona.18 %>% filter(age >= 18)
+
+enc.nona.18 <- left_join(enc.nona, age, by = "UniqueIdentifier")
+enc.nona.18 <- enc.nona.18 %>% filter(age >= 18)
+
+a1c.nona.18 <- left_join(a1c.nona, age, by = "UniqueIdentifier")
+a1c.nona.18 <- a1c.nona.18 %>% filter(age >= 18)
+
+diag.nona.18 <- left_join(diag.nona, age, by = "UniqueIdentifier")
+diag.nona.18 <- diag.nona.18 %>% filter(age >= 18)
+
+panel <- panel %>% mutate(Sex.long = case_when(Sex == 'M' ~ 'Male',
+                                               Sex == 'F' ~ 'Female'))
+panel.18 <- panel %>% filter(age >= 18)
+
+# just checking the possible races
+unique(panel.18$Race)
+marsh <- panel.18 %>% filter(Race == 'Marshallese')
+lang <- panel.18 %>% filter(Language == 'Marshallese')
+#there are a lot of patients with Race = Marshallese that don't have language Marshallese and vice versa
+
+# create our population of non-hispanic whites and marshallese (language = marsh or race = marsh or KOH = 1) - think there might be a KOH participant that doesn't have race or language as marshallese but I need to double check
+targetpop <- panel.18 %>% filter(Race == 'Marshallese' | Language == 'Marshallese' | KOHParticipant == 1 | (Race == 'White' & Ethnicity == 'Not Hispanic or Latino'))
+
+# make marshallese indicator variable
+targetpop <- targetpop %>% mutate(Marsh = ifelse((Race == 'White' & Ethnicity == 'Not Hispanic or Latino'), 0, 1),
+                                  Group = ifelse(Marsh == 1, "Marshallese", "Non-Marshallese"))
+```
+
+```{r include=FALSE}
+# Prep for table 1
+unique(targetpop$No.column.name)
+targetpop$No.column.name <- factor(targetpop$No.column.name, 
+                                   levels = c('Housed','Doubling Up','Permanent Supportive Housing','Transitional','Homeless Shelter',
+                                              'Street','Other','Unknown'))
+
+typeof(targetpop$Language)
+unique(targetpop$ClinicLocation)
+
+# replace all the blanks in the character variables with NAs so we can count the missings in the table
+targetpop <- targetpop %>% replace_with_na_all(condition = ~.x == "")
+
+# get rid of the age variable we got from merging to filter out children since targetpop already has age
+diag.nona.18 <- diag.nona.18 %>% select(-age)
+
+# merge diagnosis data with other characteristics
+table1 <- right_join(diag.nona.18, targetpop, by = "UniqueIdentifier")
+
+# create subset of only KOH participants
+koh <- table1 %>% filter(KOHParticipant == 1)
+```
+
+table 1 for KOH only - need to add average number of KOH meetings attended
+```{r echo=FALSE, warning=FALSE}
+koh %>% select(c('age','Sex.long','HTN','Diabetes','ClinicLocation','No.column.name','IncomeLevel','BLACERISK')) %>%
+   gtsummary::tbl_summary(
+     by = NULL,
+     include=c(age, Sex.long, HTN, Diabetes, ClinicLocation, No.column.name, IncomeLevel, BLACERISK),
+     list(
+       age ~ 'Age',
+       Sex.long ~ 'Sex',
+       HTN ~ 'Hypertension',
+       Diabetes ~ 'Pre-Diabetes or T2DM',
+       ClinicLocation ~ 'Clinic Location',
+       No.column.name ~ 'Housing Status',
+       IncomeLevel ~ 'Income Level',
+       BLACERISK ~ 'Risk Score'
+     ),
+     missing_text = "Missing",
+     type = all_continuous() ~ "continuous2",
+     statistic = all_continuous() ~ c(
+       "{median} ({min}, {max})"
+     )
+   ) %>%
+   bold_labels() %>%
+   modify_footnote(c(all_stat_cols()) ~ NA) %>%
+   modify_header(label ~ "**Baseline Characteristics**") %>%
+   modify_header(all_stat_cols() ~ "**KOH Participants**<br>\nN = {n}") %>%
+   as_flex_table()
+```
+
+table 1 for all Marshallese and non-Marshallese
+```{r echo=FALSE, warning=FALSE}
+table1 %>% select(c('Group','age','Sex.long','HTN','Diabetes','ClinicLocation','No.column.name','IncomeLevel','BLACERISK')) %>%
+   gtsummary::tbl_summary(
+     by = Group,
+     include=c(age, Sex.long, HTN, Diabetes, ClinicLocation, No.column.name, IncomeLevel, BLACERISK),
+     list(
+       age ~ 'Age',
+       Sex.long ~ 'Sex',
+       HTN ~ 'Hypertension',
+       Diabetes ~ 'Pre-Diabetes or T2DM',
+       ClinicLocation ~ 'Clinic Location',
+       No.column.name ~ 'Housing Status',
+       IncomeLevel ~ 'Income Level',
+       BLACERISK ~ 'Risk Score'
+     ),
+     missing_text = "Missing",
+     type = all_continuous() ~ "continuous2",
+     statistic = all_continuous() ~ c(
+       "{median} ({min}, {max})"
+     )
+   ) %>%
+   bold_labels() %>%
+   modify_footnote(c(all_stat_cols()) ~ NA) %>%
+   modify_header(label ~ "**Baseline Characteristics**") %>%
+   modify_header(all_stat_cols() ~ "**{level}**<br>\nN = {n}") %>%
+   add_overall() %>%
+   as_flex_table()
+```
+
