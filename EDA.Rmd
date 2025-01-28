@@ -47,6 +47,7 @@ enc.nona <- enc %>% filter(!is.na(Date) & !is.na(ServiceLine))
 
 koh.attend$Date <- mdy(koh.attend$dateAttended)
 koh.attend <- koh.attend %>% filter(!is.na(Date))
+koh.counts <- koh.attend %>% group_by(UniqueIdentifier) %>% count(name = "koh.counts")
 
 diag.nona <- diag %>% filter(!is.na(HTN) & !is.na(PreDM) & !is.na(T2DM))
 # create diabetes indicator for both pre and T2DM and indicator for if they have both htn and diabetes
@@ -69,14 +70,16 @@ bp.nona.18 <- bp.nona.18 %>% filter(age >= 18)
 enc.nona.18 <- left_join(enc.nona, age, by = "UniqueIdentifier")
 enc.nona.18 <- enc.nona.18 %>% filter(age >= 18)
 
-a1c.nona.18 <- left_join(a1c.nona, age, by = "UniqueIdentifier")
-a1c.nona.18 <- a1c.nona.18 %>% filter(age >= 18)
-
 diag.nona.18 <- left_join(diag.nona, age, by = "UniqueIdentifier")
 diag.nona.18 <- diag.nona.18 %>% filter(age >= 18)
 
 koh.attend.18 <- left_join(koh.attend, age, by = "UniqueIdentifier")
 koh.attend.18 <- koh.attend.18 %>% filter(age >= 18)
+
+# patients with KOHParticipant = 1 but are not in KOH attendance dataset
+panel.koh <- panel %>% filter(KOHParticipant == 1 & age>=18)
+k <- full_join(koh.counts, panel.koh, by = "UniqueIdentifier")
+k %>% filter(is.na(koh.counts))
 
 panel <- panel %>% mutate(Sex.long = case_when(Sex == 'M' ~ 'Male',
                                                Sex == 'F' ~ 'Female'))
@@ -117,17 +120,19 @@ table1 <- right_join(diag.nona.18, targetpop, by = "UniqueIdentifier")
 
 # create subset of only KOH participants
 koh <- table1 %>% filter(KOHParticipant == 1)
+koh.table1 <- full_join(koh.counts, koh, by = "UniqueIdentifier")
 ```
 
 table 1 for KOH only - need to add average number of KOH meetings attended
 ```{r echo=FALSE, warning=FALSE}
-koh %>% select(c('age','Sex.long','HTN','Diabetes','both','ClinicLocation','No.column.name','IncomeLevel','BLACERISK')) %>%
+koh.table1 %>% select(c('age','Sex.long','koh.counts','HTN','Diabetes','both','ClinicLocation','No.column.name','IncomeLevel','BLACERISK')) %>%
    gtsummary::tbl_summary(
      by = NULL,
-     include = c(age, Sex.long, HTN, Diabetes, both, ClinicLocation, No.column.name, IncomeLevel, BLACERISK),
+     include = c(age, Sex.long, koh.counts, HTN, Diabetes, both, ClinicLocation, No.column.name, IncomeLevel, BLACERISK),
      label = list(
        age ~ 'Age',
        Sex.long ~ 'Sex',
+       koh.counts ~ 'KOH Meetings Attended',
        HTN ~ 'Hypertension',
        Diabetes ~ 'Pre-Diabetes or T2DM',
        both ~ 'Hypertension and T2DM',
@@ -148,6 +153,47 @@ koh %>% select(c('age','Sex.long','HTN','Diabetes','both','ClinicLocation','No.c
   modify_header(all_stat_cols() ~ "**KOH Participants**<br>\nN = {n}") %>%
    as_flex_table()
 ```
+distribution of KOH attendance
+```{r}
+hist(koh.table1$koh.counts)
+summary(koh.table1$koh.counts)
+summary(as.factor(koh.table1$koh.counts))
+```
+
+subsetting koh patients with hypertension
+```{r}
+# get pts with htn
+koh.htn <- koh.table1 %>% filter(HTN == 1)
+# isolate the patient ids
+koh.htn.patlist <- koh.htn %>% select("UniqueIdentifier")
+# select bp measures for only kohn htn pts
+koh.bp <- left_join(koh.htn.patlist, bp.nona.18, by = "UniqueIdentifier") %>% select(-age)
+
+# count number of bp readings per patient
+koh.bp.counts <- koh.bp %>% group_by(UniqueIdentifier) %>% count(name = "bp.counts")
+# remove any patients that only have 1 reading - i will filter out any that don't have reading before and after their KOH meeting but for now, we at least know they need to have at least 2 bp readings
+koh.htn.elig.patlist <- koh.bp.counts %>% filter(bp.counts > 1) %>% select("UniqueIdentifier")
+# now that we have the "eligible patients" we can subset the BP data for these patients
+koh.bp.elig <- left_join(koh.htn.elig.patlist, koh.bp, by = "UniqueIdentifier")
+```
+
+subsetting koh patients with prediabetes or T2DM
+```{r}
+# get pts with diabetes
+koh.t2dm <- koh.table1 %>% filter(Diabetes == 1)
+# isolate the patient ids
+koh.t2dm.patlist <- koh.t2dm %>% select("UniqueIdentifier")
+# select a1c measures for only koh t2dm pts
+koh.a1c <- left_join(koh.t2dm.patlist, a1c.nona.18, by = "UniqueIdentifier") %>% select(-age)
+
+# count number of a1c readings per patient
+koh.a1c.counts <- koh.a1c %>% group_by(UniqueIdentifier) %>% count(name = "a1c.counts")
+# remove any patients that only have 1 reading - i will filter out any that don't have reading before and after their KOH meeting but for now, we at least know they need to have at least 2 a1c readings
+koh.t2dm.elig.patlist <- koh.a1c.counts %>% filter(a1c.counts > 1) %>% select("UniqueIdentifier")
+# now that we have the "eligible patients" we can subset the a1c data for these patients
+koh.a1c.elig <- left_join(koh.t2dm.elig.patlist, koh.a1c, by = "UniqueIdentifier")
+```
+
 
 table 1 for all Marshallese and non-Marshallese
 ```{r echo=FALSE, warning=FALSE}
