@@ -45,6 +45,9 @@ bp.nona <- bp %>% filter(!is.na(Date) & !is.na(Systolic))
 enc$Date <- mdy(enc$Date)
 enc.nona <- enc %>% filter(!is.na(Date) & !is.na(ServiceLine))
 
+koh.attend$Date <- mdy(koh.attend$dateAttended)
+koh.attend <- koh.attend %>% filter(!is.na(Date))
+
 diag.nona <- diag %>% filter(!is.na(HTN) & !is.na(PreDM) & !is.na(T2DM))
 # create diabetes indicator for both pre and T2DM
 diag.nona <- diag.nona %>% mutate(Diabetes = ifelse((PreDM == 1 | T2DM == 1), 1, 0))
@@ -70,6 +73,9 @@ a1c.nona.18 <- a1c.nona.18 %>% filter(age >= 18)
 
 diag.nona.18 <- left_join(diag.nona, age, by = "UniqueIdentifier")
 diag.nona.18 <- diag.nona.18 %>% filter(age >= 18)
+
+koh.attend.18 <- left_join(koh.attend, age, by = "UniqueIdentifier")
+koh.attend.18 <- koh.attend.18 %>% filter(age >= 18)
 
 panel <- panel %>% mutate(Sex.long = case_when(Sex == 'M' ~ 'Male',
                                                Sex == 'F' ~ 'Female'))
@@ -110,7 +116,6 @@ table1 <- right_join(diag.nona.18, targetpop, by = "UniqueIdentifier")
 
 # create subset of only KOH participants
 koh <- table1 %>% filter(KOHParticipant == 1)
-koh %>% filter(Language !='Marshallese' & Race !='Marshallese')
 ```
 
 table 1 for KOH only - need to add average number of KOH meetings attended
@@ -118,8 +123,8 @@ table 1 for KOH only - need to add average number of KOH meetings attended
 koh %>% select(c('age','Sex.long','HTN','Diabetes','ClinicLocation','No.column.name','IncomeLevel','BLACERISK')) %>%
    gtsummary::tbl_summary(
      by = NULL,
-     include=c(age, Sex.long, HTN, Diabetes, ClinicLocation, No.column.name, IncomeLevel, BLACERISK),
-     list(
+     include = c(age, Sex.long, HTN, Diabetes, ClinicLocation, No.column.name, IncomeLevel, BLACERISK),
+     label = list(
        age ~ 'Age',
        Sex.long ~ 'Sex',
        HTN ~ 'Hypertension',
@@ -134,11 +139,11 @@ koh %>% select(c('age','Sex.long','HTN','Diabetes','ClinicLocation','No.column.n
      statistic = all_continuous() ~ c(
        "{median} ({min}, {max})"
      )
-   ) %>%
+   )  %>%
    bold_labels() %>%
    modify_footnote(c(all_stat_cols()) ~ NA) %>%
    modify_header(label ~ "**Baseline Characteristics**") %>%
-   modify_header(all_stat_cols() ~ "**KOH Participants**<br>\nN = {n}") %>%
+  modify_header(all_stat_cols() ~ "**KOH Participants**<br>\nN = {n}") %>%
    as_flex_table()
 ```
 
