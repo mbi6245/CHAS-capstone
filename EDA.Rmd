@@ -124,7 +124,7 @@ koh <- table1 %>% filter(KOHParticipant == 1)
 koh.table1 <- full_join(koh.counts, koh, by = "UniqueIdentifier")
 ```
 
-table 1 for KOH only - need to add average number of KOH meetings attended
+table 1 for KOH only
 ```{r echo=FALSE, warning=FALSE}
 koh.table1 %>% select(c('age','Sex.long','koh.counts','HTN','Diabetes','both','ClinicLocation','No.column.name','IncomeLevel','BLACERISK')) %>%
    gtsummary::tbl_summary(
@@ -176,6 +176,26 @@ koh.bp.counts <- koh.bp %>% group_by(UniqueIdentifier) %>% count(name = "bp.coun
 koh.htn.elig.patlist <- koh.bp.counts %>% filter(bp.counts > 1) %>% select("UniqueIdentifier")
 # now that we have the "eligible patients" we can subset the BP data for these patients
 koh.bp.elig <- left_join(koh.htn.elig.patlist, koh.bp, by = "UniqueIdentifier")
+
+
+# getting the date of first visit attended
+koh.mtg1 <- koh.attend.18 %>% group_by(UniqueIdentifier) %>% arrange(Date, .by_group=TRUE) %>% slice_head() %>% select(c("UniqueIdentifier", "Date")) %>% rename(KOHDate = Date)
+
+# merging with eligble bp table to find "pre" BP reading closest to first KOH meeting
+koh.mtg1.bp <- right_join(koh.mtg1, koh.bp.elig, by="UniqueIdentifier") %>% 
+  rename(BPDate = Date) %>%
+  mutate(datediff = as.numeric(difftime(BPDate, KOHDate, units="days")))
+
+# these are all the "pre" KOH BP measurements
+koh.bp.pre <- koh.mtg1.bp %>% filter(datediff<=0) %>% group_by(UniqueIdentifier) %>% arrange(desc(datediff), .by_group=TRUE) %>% slice_head() %>% select(-(datediff)) %>%
+  rename(KOH.start.dt = KOHDate, BPDate.pre = BPDate, sys.pre = Systolic, dia.pre = Diastolic)
+
+# now finding the most recent BP measure for "post" KOH
+koh.bp.post <- koh.mtg1.bp %>% filter(datediff>0) %>% group_by(UniqueIdentifier) %>% arrange(desc(datediff), .by_group=TRUE) %>% slice_head() %>% select(-(datediff)) %>%
+  rename(KOH.start.dt = KOHDate, BPDate.post = BPDate, sys.post = Systolic, dia.post = Diastolic)
+
+# now merging together the pre and post datasets to find patients that have both timepoints
+koh.bp.pre.post <- inner_join(koh.bp.pre, koh.bp.post, by="UniqueIdentifier")
 ```
 
 subsetting koh patients with prediabetes or T2DM
@@ -193,8 +213,25 @@ koh.a1c.counts <- koh.a1c %>% group_by(UniqueIdentifier) %>% count(name = "a1c.c
 koh.t2dm.elig.patlist <- koh.a1c.counts %>% filter(a1c.counts > 1) %>% select("UniqueIdentifier")
 # now that we have the "eligible patients" we can subset the a1c data for these patients
 koh.a1c.elig <- left_join(koh.t2dm.elig.patlist, koh.a1c, by = "UniqueIdentifier")
-```
 
+
+# find "pre" A1c reading closest to first KOH meeting
+koh.mtg1.a1c <- right_join(koh.mtg1, koh.a1c.elig, by="UniqueIdentifier") %>% 
+  rename(A1cDate = Date) %>%
+  mutate(datediff = as.numeric(difftime(A1cDate, KOHDate, units="days")))
+
+# these are all the "pre" KOH A1c measurements
+koh.a1c.pre <- koh.mtg1.a1c %>% filter(datediff<=0) %>% group_by(UniqueIdentifier) %>% arrange(desc(datediff), .by_group=TRUE) %>% slice_head() %>% select(-(datediff)) %>%
+  rename(KOH.start.dt = KOHDate, A1cDate.pre = A1cDate, A1c.pre = A1c)
+
+# now finding the most recent A1c measure for "post" KOH
+koh.a1c.post <- koh.mtg1.a1c %>% filter(datediff>0) %>% group_by(UniqueIdentifier) %>% arrange(desc(datediff), .by_group=TRUE) %>% slice_head() %>% select(-(datediff)) %>%
+  rename(KOH.start.dt = KOHDate, A1cDate.post = A1cDate, A1c.post = A1c)
+
+# now merging together the pre and post datasets to find patients that have both timepoints
+koh.a1c.pre.post <- inner_join(koh.a1c.pre, koh.a1c.post, by="UniqueIdentifier")
+```
+*** next on Gabby's TO DO list is constructing the analysis data set for the longitudinal KOH analysis ***
 
 table 1 for all Marshallese and non-Marshallese
 ```{r echo=FALSE, warning=FALSE}
