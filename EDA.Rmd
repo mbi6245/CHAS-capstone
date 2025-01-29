@@ -15,6 +15,7 @@ library(naniar)
 library(flextable)
 ```
 
+# Descriptive Statistics
 
 ```{r cars, include=FALSE, echo=FALSE}
 a1c <- read.csv("Raw Data/UWDataA1cs.csv")
@@ -224,5 +225,77 @@ table1 %>% select(c('Group','age','Sex.long','HTN','Diabetes','both','ClinicLoca
    modify_header(all_stat_cols() ~ "**{level}**<br>\nN = {n}") %>%
    add_overall() %>%
    as_flex_table()
+```
+
+# 
+
+# Preliminary Parallel Trends EDA
+
+```{r}
+# join encounter and panel data to get visit types by race
+enc_wraces = enc.nona.18 %>% 
+  left_join(panel.18, by="UniqueIdentifier") %>% 
+  select(Date, ServiceLine, Race, Language)
+
+# dates up to March 2023 are of interest, also t_0 to new yr's day 2021
+tot_months = 26
+t_0 = enc_wraces$Date %>% min() - days(8)
+
+# initialize empty dataframe to store monthly PC visit counts
+pc_trends = tibble(
+  visits = numeric(),
+  race = character(),
+  Date = Date()
+)
+
+# iterate through all months and count PC visits
+curr_date = t_0
+for (i in 1:tot_months) {
+  # filter for only PC visits
+  curr_pc_visits = enc_wraces %>% filter(
+    month(Date) == month(curr_date) &
+    year(Date) == year(curr_date) & 
+    ServiceLine == "Primary Care"
+  )
+  
+  # filter for/add visits by Marshallese
+  curr_marsh_visits = curr_pc_visits %>% filter(
+    Race == "Marshallese" |
+    Language == "Marshallese"
+  ) %>% count()
+  
+  pc_trends = pc_trends %>% add_row(
+    # increase Marshallese visits counts by 2 orders of magnitude for easy comparison
+    # TODO: REVERT REVERT REVERT
+    visits = curr_marsh_visits[1, 1] * 100,
+    race = "Marshallese",
+    Date = make_date(year=year(curr_date), month=month(curr_date), day=1)
+  )
+  
+  # filter for/add visits by NHWs
+  curr_nhwht_visits = curr_pc_visits %>% filter(
+    Race == "White"
+  ) %>% count()
+  
+  pc_trends = pc_trends %>% add_row(
+    visits = curr_nhwht_visits[1, 1],
+    race = "Non-Hispanic White",
+    Date = make_date(year=year(curr_date), month=month(curr_date), day=1)
+  )
+  
+  # increment date by 1 month
+  curr_date = curr_date + months(1)
+}
+
+# plot
+ggplot(pc_trends, aes(x=Date, y=visits, color=race, group=race)) +
+  geom_line() +
+  geom_point() + 
+  labs(
+    title="Primary Care Visits by Race",
+    x="Date",
+    y="Number of Visits",
+    color="Race"
+  )
 ```
 
