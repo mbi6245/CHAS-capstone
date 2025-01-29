@@ -227,7 +227,7 @@ table1 %>% select(c('Group','age','Sex.long','HTN','Diabetes','both','ClinicLoca
    as_flex_table()
 ```
 
-# KOH Attendance Distribution
+# One-Time KOH Attendance Distribution
 
 ```{r}
 koh_1x = koh.counts %>% filter(koh.counts == 1)
@@ -241,7 +241,7 @@ koh_1x = koh_1x %>%
 ggplot(koh_1x, aes(x=Date, y=attendees)) +
   geom_col(fill="steelblue") +
   geom_text(aes(label=Date, angle=90, vjust=-0.5)) +
-  labs(title="Number of KOH Attendees by Date",
+  labs(title="Number of One-Time KOH Attendees by Date",
        x="KOH Meeting Date",
        y="Number of Attendees")
 ```
