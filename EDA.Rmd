@@ -96,8 +96,9 @@ lang <- panel.18 %>% filter(Language == 'Marshallese')
 targetpop <- panel.18 %>% filter(Race == 'Marshallese' | Language == 'Marshallese' | KOHParticipant == 1 | (Race == 'White' & Ethnicity == 'Not Hispanic or Latino'))
 
 # make marshallese indicator variable
-targetpop <- targetpop %>% mutate(Marsh = ifelse((Race == 'White' & Ethnicity == 'Not Hispanic or Latino'), 0, 1),
-                                  Group = ifelse(Marsh == 1, "Marshallese", "Non-Marshallese"))
+targetpop <- targetpop %>% 
+  mutate(Marsh = ifelse((Race == 'Marshallese' | Language == 'Marshallese' | KOHParticipant == 1), 1, 0),
+         Group = ifelse(Marsh == 1, "Marshallese", "Non-Marshallese"))
 ```
 
 ```{r include=FALSE}
@@ -121,7 +122,7 @@ table1 <- right_join(diag.nona.18, targetpop, by = "UniqueIdentifier")
 
 # create subset of only KOH participants
 koh <- table1 %>% filter(KOHParticipant == 1)
-koh.table1 <- full_join(koh.counts, koh, by = "UniqueIdentifier")
+koh.table1 <- left_join(koh.counts, koh, by = "UniqueIdentifier")
 ```
 
 table 1 for KOH only
@@ -160,7 +161,7 @@ hist(koh.table1$koh.counts)
 summary(koh.table1$koh.counts)
 summary(as.factor(koh.table1$koh.counts))
 ```
-
+## Primary Objective - pre and post analysis datasets ##
 subsetting koh patients with hypertension
 ```{r}
 # get pts with htn
@@ -196,6 +197,39 @@ koh.bp.post <- koh.mtg1.bp %>% filter(datediff>0) %>% group_by(UniqueIdentifier)
 
 # now merging together the pre and post datasets to find patients that have both timepoints
 koh.bp.pre.post <- inner_join(koh.bp.pre, koh.bp.post, by="UniqueIdentifier")
+```
+
+subsetting marshallese non-koh pts with HTN
+```{r}
+marsh.non.htn <- table1 %>% filter(Marsh == 1 & KOHParticipant == 0 & HTN == 1)
+# isolate the patient ids
+marsh.non.htn.patlist <- marsh.non.htn %>% select("UniqueIdentifier")
+# select bp measures for only non koh htn pts
+marsh.non.bp <- left_join(marsh.non.htn.patlist, bp.nona.18, by = "UniqueIdentifier") %>% select(-age)
+
+# count number of bp readings per patient
+marsh.non.bp.counts <- marsh.non.bp %>% group_by(UniqueIdentifier) %>% count(name = "bp.counts")
+# remove any patients that only have 1 reading - i will filter out any that don't have reading before and after first KOH meeting but for now, we at least know they need to have at least 2 bp readings
+marsh.non.htn.elig.patlist <- marsh.non.bp.counts %>% filter(bp.counts > 1) %>% select("UniqueIdentifier")
+# now that we have the "eligible patients" we can subset the BP data for these patients
+marsh.non.bp.elig <- left_join(marsh.non.htn.elig.patlist, marsh.non.bp, by = "UniqueIdentifier")
+
+# the earliest KOH meeting in the koh subsets is 4/5/2023, so we will use that as our starting point to find "pre" readings
+marsh.non.bp.elig$KOHDate <- as.Date('2023-04-05')
+# find "pre" BP reading closest to first KOH meeting
+marsh.non.bp.elig <- marsh.non.bp.elig %>% rename(BPDate = Date) %>%
+  mutate(datediff = as.numeric(difftime(BPDate, KOHDate, units="days")))
+
+# these are all the "pre" KOH BP measurements
+marsh.non.bp.pre <- marsh.non.bp.elig %>% filter(datediff<=0) %>% group_by(UniqueIdentifier) %>% arrange(desc(datediff), .by_group=TRUE) %>% slice_head() %>% select(-(datediff)) %>%
+  rename(KOH.start.dt = KOHDate, BPDate.pre = BPDate, sys.pre = Systolic, dia.pre = Diastolic)
+
+# now finding the most recent BP measure for "post" KOH
+marsh.non.bp.post <- marsh.non.bp.elig %>% filter(datediff>0) %>% group_by(UniqueIdentifier) %>% arrange(desc(datediff), .by_group=TRUE) %>% slice_head() %>% select(-(datediff)) %>%
+  rename(KOH.start.dt = KOHDate, BPDate.post = BPDate, sys.post = Systolic, dia.post = Diastolic)
+
+# now merging together the pre and post datasets to find patients that have both timepoints
+marsh.non.bp.pre.post <- inner_join(marsh.non.bp.pre, marsh.non.bp.post, by="UniqueIdentifier")
 ```
 
 subsetting koh patients with prediabetes or T2DM
