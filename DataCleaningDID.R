@@ -13,19 +13,19 @@ all_visit_types_2021_2025 <- read.csv("~/BIOST CLASSES/597 Capstone with Lloyd M
 
 # make sure the sets are mutually exclusive
 
-?lubridate
-
-min(as.Date(all_visit_types_2016_2021$Date, format = "%m/%d/%Y"))
-# "2016-01-02"
-max(as.Date(all_visit_types_2016_2021$Date, format = "%m/%d/%Y"))
-# "2021-12-31"
-min(as.Date(all_visit_types_2021_2025$Date, format = "%m/%d/%Y"))
-# "2021-01-09"
-max(as.Date(all_visit_types_2021_2025$Date, format = "%m/%d/%Y"))
-# "2025-01-08"
-
-check <- intersect(all_visit_types_2016_2021, all_visit_types_2021_2025 )
-# all 2021 dates are overlapping
+#?lubridate
+#
+# min(as.Date(all_visit_types_2016_2021$Date, format = "%m/%d/%Y"))
+# # "2016-01-02"
+# max(as.Date(all_visit_types_2016_2021$Date, format = "%m/%d/%Y"))
+# # "2021-12-31"
+# min(as.Date(all_visit_types_2021_2025$Date, format = "%m/%d/%Y"))
+# # "2021-01-09"
+# max(as.Date(all_visit_types_2021_2025$Date, format = "%m/%d/%Y"))
+# # "2025-01-08"
+#
+# check <- intersect(all_visit_types_2016_2021, all_visit_types_2021_2025 )
+# # all 2021 dates are overlapping
 
 
 # Remove 2021 from one set
@@ -46,7 +46,7 @@ nrow(all_visit_types_2016_2020) + nrow(all_visit_types_2021_2025) == nrow(all_vi
 # check if we have race/lang data for all the uniqueIDs
 
 
-all_visit_types
+#all_visit_types
 
 
 
@@ -110,7 +110,7 @@ ER2016_2025_yearmonth <-  as.data.frame( with(ER2016_2025, table(yearmonth)))
 # ER And Urgent Care
 ERandUC2016_2025 <- all_visit_types |> filter(ServiceLine == "Emergency" | ServiceLine == "Urgent Care")
 
-ERandUC2016_2025 <-  as.data.frame( with(ERandUC2016_2025, table(year)))  # , useNA = "always"
+ERandUC2016_2025_year <-  as.data.frame( with(ERandUC2016_2025, table(year)))  # , useNA = "always"
 
 
 # make table by Marshallese and Non-Hispanic white
@@ -131,7 +131,7 @@ ER2016_2025_yearmonth_marsh <-  as.data.frame( with(ER2016_2025, table(yearmonth
 ERandUC2016_2025 <- ERandUC2016_2025 %>% mutate(marsh = if_else((UniqueIdentifier %in% MarshalleseUniqueID), 1,
                                                       if_else((UniqueIdentifier %in% ControlUniqueID), 0, NA) ) ) %>%
   filter(!is.na(marsh))
-ERandUC2016_2025_marsh <-  as.data.frame( with(ERandUC2016_2025, table(year, marsh)))  # , useNA = "always"
+ERandUC2016_2025_year_marsh <-  as.data.frame( with(ERandUC2016_2025, table(year, marsh)))  # , useNA = "always"
 
 # Visualize the Trends of these 2 groups over time
 # Spaghetti plot
@@ -155,7 +155,7 @@ ERandUC2016_2025_marsh <-  as.data.frame( with(ERandUC2016_2025, table(year, mar
 
 #!
 ER2016_2025_year_marsh %>% filter(marsh == 1) %>%
-  ggplot(aes(x= as.numeric(year), y= Freq, col = marsh, group = marsh ))+
+  ggplot(aes(x= year, y= Freq, col = marsh, group = marsh ))+
   geom_line()+
   labs(y = "Number of ER Visits", x = "Year", title = "Number of ER Visits by Group 2016-2025")
 
@@ -296,6 +296,67 @@ pcp_2016_2025_year_marsh %>% filter(year != 2025) %>% # only one month into the 
 #
 
 
+
+
+
+# create table for all visit types
+colnames(all_visit_types)
+
+#colnames(ER2016_2025)
+all_visit_types <- all_visit_types %>% mutate(marsh = if_else((UniqueIdentifier %in% MarshalleseUniqueID), 1,
+                                                      if_else((UniqueIdentifier %in% ControlUniqueID), 0, NA) ) )
+
+table_all_visit_types <- as.data.frame( with(all_visit_types, table(ServiceLine,year, marsh)) ) #, useNA = "always"
+
+# ! update when we get all of the Marshallese and White Unique IDs
+
+table_all_visit_types_wider <- pivot_wider(table_all_visit_types,
+                                           names_from = year,
+                                           values_from = Freq)
+
+# export for final report
+write.csv(table_all_visit_types_wider, "table_all_visit_types_wider.csv")
+
+# table_all_visit_types_wider <- t(table_all_visit_types_wider)
+
+# figure out how many races we are missing
+colnames(panel.18)
+all_races <- panel.18 %>% select(UniqueID, KOHParticipant, Ethnicity, Race)
+colnames(all_visit_types)
+all_visit_types_race <- full_join(all_visit_types, all_races, by = c("UniqueIdentifier" = "UniqueID") )
+
+need_races <- all_visit_types_race %>% filter(is.na(Race))
+nrow(need_races)
+need_races <- as.data.frame(need_races)
+hist(need_races$year)
+# most of the missing races are since 2021
+need_races <- as.data.frame(need_races) %>% filter(year < 2021)
+hist(need_races$year)
+nrow(need_races)
+# 45183
+
+need_races <- need_races %>% filter(ServiceLine != "Unmapped")
+# 34173
+hist(need_races$year)
+need_races_uniqueID <- unique(need_races$UniqueIdentifier)
+length(need_races_uniqueID)
+# 4558 or about 15% of the 30434 patients
+length(unique(all_visit_types_2016_2020$UniqueIdentifier))
+# 30434
+
+
+
+panel.18 %>% filter(is.na(Race)) %>% nrow()
+# 0
+panel.18 %>% filter(Race == "") %>% nrow()
+# 112
+panel.18 %>% filter(Race == "Patient Declined") %>% nrow()
+# 3144
+length(unique(all_visit_types_2021_2025$UniqueIdentifier))
+# 52506
+# about 6% are unrecorded
+
+# with(panel.18, table(Race))
 
 
 
