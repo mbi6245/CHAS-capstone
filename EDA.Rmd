@@ -27,9 +27,9 @@ panel <- read.csv("Raw Data/UWDataPanel.csv")
 koh.attend <- read.csv("Raw Data/UWDataKOHAttendance.csv")
 ```
 
-There are 673 patients that are marked as having prediabetes as well as type II diabetes. Not a big deal for the actual analysis itself since we will combine these two indicator variables into one variable, but we should clear this up for our descriptive statistics.
+Changing any cases where PreDM=1 and T2DM=1 to PreDM=0 for the descriptive statistics
 ```{r, include=FALSE, echo=FALSE}
-pre.t2dm <- diag %>% filter(PreDM == 1 & T2DM == 1)
+diag$PreDM[diag$PreDM == 1 & diag$T2DM == 1] <- 0
 ```
 
 ```{r, include=FALSE, echo=FALSE}
@@ -127,16 +127,17 @@ koh.table1 <- left_join(koh.counts, koh, by = "UniqueIdentifier")
 
 table 1 for KOH only
 ```{r echo=FALSE, warning=FALSE}
-koh.table1 %>% select(c('age','Sex.long','koh.counts','HTN','Diabetes','both','ClinicLocation','No.column.name','IncomeLevel','BLACERISK')) %>%
+koh.table1 %>% select(c('age','Sex.long','koh.counts','HTN','PreDM','T2DM','both','ClinicLocation','No.column.name','IncomeLevel','BLACERISK')) %>%
    gtsummary::tbl_summary(
      by = NULL,
-     include = c(age, Sex.long, koh.counts, HTN, Diabetes, both, ClinicLocation, No.column.name, IncomeLevel, BLACERISK),
+     include = c(age, Sex.long, koh.counts, HTN, PreDM, T2DM, both, ClinicLocation, No.column.name, IncomeLevel, BLACERISK),
      label = list(
        age ~ 'Age',
        Sex.long ~ 'Sex',
        koh.counts ~ 'KOH Meetings Attended',
        HTN ~ 'Hypertension',
-       Diabetes ~ 'Pre-Diabetes or T2DM',
+       PreDM ~ 'Pre-Diabetes',
+       T2DM ~ 'Type II Diabetes',
        both ~ 'Hypertension and T2DM',
        ClinicLocation ~ 'Clinic Location',
        No.column.name ~ 'Housing Status',
@@ -230,6 +231,35 @@ marsh.non.bp.post <- marsh.non.bp.elig %>% filter(datediff>0) %>% group_by(Uniqu
 
 # now merging together the pre and post datasets to find patients that have both timepoints
 marsh.non.bp.pre.post <- inner_join(marsh.non.bp.pre, marsh.non.bp.post, by="UniqueIdentifier")
+
+# just looking at the pre and post means between groups
+mean(marsh.non.bp.pre.post$sys.pre)
+mean(marsh.non.bp.pre.post$sys.post)
+mean(koh.bp.pre.post$sys.pre)
+mean(koh.bp.pre.post$sys.post)
+
+marsh.non.bp.pre.post <- marsh.non.bp.pre.post %>% select(-c(KOH.start.dt.x, KOH.start.dt.y))
+marsh.non.bp.pre.post_long <- marsh.non.bp.pre.post %>%
+  pivot_longer(
+    cols = c(BPDate.pre, sys.pre, dia.pre, BPDate.post, sys.post, dia.post),
+    names_to = c(".value", "TimePoint"),
+    names_sep = "\\."
+  ) %>%
+  select(UniqueIdentifier, BPDate, sys, dia)
+
+koh.bp.pre.post <- koh.bp.pre.post %>% select(-c(KOH.start.dt.x, KOH.start.dt.y))
+koh.bp.pre.post_long <- koh.bp.pre.post %>%
+  pivot_longer(
+    cols = c(BPDate.pre, sys.pre, dia.pre, BPDate.post, sys.post, dia.post),
+    names_to = c(".value", "TimePoint"),
+    names_sep = "\\."
+  ) %>%
+  select(UniqueIdentifier, BPDate, sys, dia)
+koh.bp.pre.post_long$KOH <- 1
+obj1.bp.pre.post <- bind_rows(koh.bp.pre.post_long, marsh.non.bp.pre.post_long)
+obj1.bp.pre.post$KOH[is.na(obj1.bp.pre.post$KOH)] <- 0
+
+#write.csv(obj1.bp.pre.post, 'Obj1BPPrePost.csv')
 ```
 
 subsetting koh patients with prediabetes or T2DM
@@ -264,6 +294,69 @@ koh.a1c.post <- koh.mtg1.a1c %>% filter(datediff>0) %>% group_by(UniqueIdentifie
 
 # now merging together the pre and post datasets to find patients that have both timepoints
 koh.a1c.pre.post <- inner_join(koh.a1c.pre, koh.a1c.post, by="UniqueIdentifier")
+```
+
+subsetting marshallese non-koh pts with diabetes
+```{r}
+marsh.non.dia <- table1 %>% filter(Marsh == 1 & KOHParticipant == 0 & Diabetes == 1)
+# isolate the patient ids
+marsh.non.dia.patlist <- marsh.non.dia %>% select("UniqueIdentifier")
+# select bp measures for only non koh diabetic pts
+marsh.non.a1c <- left_join(marsh.non.dia.patlist, a1c.nona.18, by = "UniqueIdentifier") %>% select(-age)
+
+# count number of a1c readings per patient
+marsh.non.a1c.counts <- marsh.non.a1c %>% group_by(UniqueIdentifier) %>% count(name = "a1c.counts")
+# remove any patients that only have 1 reading - i will filter out any that don't have reading before and after first KOH meeting but for now, we at least know they need to have at least 2 a1c readings
+marsh.non.dia.elig.patlist <- marsh.non.a1c.counts %>% filter(a1c.counts > 1) %>% select("UniqueIdentifier")
+# now that we have the "eligible patients" we can subset the A1c data for these patients
+marsh.non.a1c.elig <- left_join(marsh.non.dia.elig.patlist, marsh.non.a1c, by = "UniqueIdentifier")
+
+# the earliest KOH meeting in the koh subsets is 4/5/2023, so we will use that as our starting point to find "pre" readings
+marsh.non.a1c.elig$KOHDate <- as.Date('2023-04-05')
+# find "pre" A1c reading closest to first KOH meeting
+marsh.non.a1c.elig <- marsh.non.a1c.elig %>% rename(A1cDate = Date) %>%
+  mutate(datediff = as.numeric(difftime(A1cDate, KOHDate, units="days")))
+
+# these are all the "pre" KOH A1c measurements
+marsh.non.a1c.pre <- marsh.non.a1c.elig %>% filter(datediff<=0) %>% group_by(UniqueIdentifier) %>% arrange(desc(datediff), .by_group=TRUE) %>% slice_head() %>% select(-(datediff)) %>%
+  rename(KOH.start.dt = KOHDate, A1cDate.pre = A1cDate, A1c.pre = A1c)
+
+# now finding the most recent A1c measure for "post" KOH
+marsh.non.a1c.post <- marsh.non.a1c.elig %>% filter(datediff>0) %>% group_by(UniqueIdentifier) %>% arrange(desc(datediff), .by_group=TRUE) %>% slice_head() %>% select(-(datediff)) %>%
+  rename(KOH.start.dt = KOHDate, A1cDate.post = A1cDate, A1c.post = A1c)
+
+# now merging together the pre and post datasets to find patients that have both timepoints
+marsh.non.a1c.pre.post <- inner_join(marsh.non.a1c.pre, marsh.non.a1c.post, by="UniqueIdentifier")
+
+# just looking at the pre and post means between groups
+mean(marsh.non.a1c.pre.post$A1c.pre)
+mean(marsh.non.a1c.pre.post$A1c.post)
+mean(koh.a1c.pre.post$A1c.pre)
+mean(koh.a1c.pre.post$A1c.post)
+
+# PRIMARY OBJECTIVE A1C PRE-POST DATASET
+marsh.non.a1c.pre.post <- marsh.non.a1c.pre.post %>% select(-c(KOH.start.dt.x, KOH.start.dt.y))
+marsh.non.a1c.pre.post_long <- marsh.non.a1c.pre.post %>%
+  pivot_longer(
+    cols = c(A1cDate.pre, A1c.pre, A1cDate.post, A1c.post),
+    names_to = c(".value", "TimePoint"),
+    names_sep = "\\."
+  ) %>%
+  select(UniqueIdentifier, A1cDate, A1c)
+
+koh.a1c.pre.post <- koh.a1c.pre.post %>% select(-c(KOH.start.dt.x, KOH.start.dt.y))
+koh.a1c.pre.post_long <- koh.a1c.pre.post %>%
+  pivot_longer(
+    cols = c(A1cDate.pre, A1c.pre, A1cDate.post, A1c.post),
+    names_to = c(".value", "TimePoint"),
+    names_sep = "\\."
+  ) %>%
+  select(UniqueIdentifier, A1cDate, A1c)
+koh.a1c.pre.post_long$KOH <- 1
+obj1.pre.post <- bind_rows(koh.a1c.pre.post_long, marsh.non.a1c.pre.post_long)
+obj1.pre.post$KOH[is.na(obj1.pre.post$KOH)] <- 0
+
+#write.csv(obj1.pre.post, 'Obj1A1cPrePost.csv')
 ```
 *** next on Gabby's TO DO list is constructing the analysis data set for the longitudinal KOH analysis ***
 
