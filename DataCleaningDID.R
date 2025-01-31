@@ -329,7 +329,27 @@ all_visit_types_race %>% summary()
 all <- as.data.frame(summary(as.factor(all_visit_types_race$Race)))
 
 
+# Double check, everyone in 2016-2020 is still there in 2021-2025, but there are about 22000 more people too :)
+how_many_stay <- intersect(all_visit_types_2016_2020$UniqueIdentifier, all_visit_types_2021_2025$UniqueIdentifier )
+length(unique(how_many_stay))
+# 30434
+length(unique(all_visit_types$UniqueIdentifier))
+# 52506
+length(unique(all_visit_types_2016_2020$UniqueIdentifier))
+# 30434
+length(unique(all_visit_types_2021_2025$UniqueIdentifier))
+# 52506
 
+all_visit_types_2016_2021$Date <- as.Date(all_visit_types_2016_2021$Date, format = "%m/%d/%Y")
+class(all_visit_types_2016_2021$Date)
+
+all_visit_types$Date <- as.Date(all_visit_types$Date, format = "%m/%d/%Y")
+
+class(all_visit_types$Date)
+# visualize how long M patients have been there
+all_visit_types %>% filter(UniqueIdentifier %in% MarshalleseUniqueID ) %>% mutate(extra = if_else((year %in% 2016:2020), 1, 0, NA)) %>% # arrange(extra, UniqueIdentifier) %>%
+  ggplot(aes(x = Date, y = UniqueIdentifier, group = UniqueIdentifier, col = extra)) +
+  geom_line()
 
 # figure out how many races we are missing
 # colnames(panel.18)
