@@ -320,43 +320,55 @@ write.csv(table_all_visit_types_wider, "table_all_visit_types_wider.csv")
 # table_all_visit_types_wider <- t(table_all_visit_types_wider)
 
 # figure out how many races we are missing
-colnames(panel.18)
-all_races <- panel.18 %>% select(UniqueID, KOHParticipant, Ethnicity, Race)
+colnames(panel)
+all_races <- panel %>% select(UniqueID, KOHParticipant, Ethnicity, Race)
 colnames(all_visit_types)
 all_visit_types_race <- full_join(all_visit_types, all_races, by = c("UniqueIdentifier" = "UniqueID") )
+all_visit_types_race %>% summary()
 
-need_races <- all_visit_types_race %>% filter(is.na(Race))
-nrow(need_races)
-need_races <- as.data.frame(need_races)
-hist(need_races$year)
-# most of the missing races are since 2021
-need_races <- as.data.frame(need_races) %>% filter(year < 2021)
-hist(need_races$year)
-nrow(need_races)
-# 45183
-
-need_races <- need_races %>% filter(ServiceLine != "Unmapped")
-# 34173
-hist(need_races$year)
-need_races_uniqueID <- unique(need_races$UniqueIdentifier)
-length(need_races_uniqueID)
-# 4558 or about 15% of the 30434 patients
-length(unique(all_visit_types_2016_2020$UniqueIdentifier))
-# 30434
+all <- as.data.frame(summary(as.factor(all_visit_types_race$Race)))
 
 
 
-panel.18 %>% filter(is.na(Race)) %>% nrow()
-# 0
-panel.18 %>% filter(Race == "") %>% nrow()
-# 112
-panel.18 %>% filter(Race == "Patient Declined") %>% nrow()
-# 3144
-length(unique(all_visit_types_2021_2025$UniqueIdentifier))
-# 52506
-# about 6% are unrecorded
 
-# with(panel.18, table(Race))
-
-
-
+# figure out how many races we are missing
+# colnames(panel.18)
+# all_races <- panel.18 %>% select(UniqueID, KOHParticipant, Ethnicity, Race)
+# colnames(all_visit_types)
+# all_visit_types_race <- full_join(all_visit_types, all_races, by = c("UniqueIdentifier" = "UniqueID") )
+#
+# need_races <- all_visit_types_race %>% filter(is.na(Race))
+# nrow(need_races)
+# need_races <- as.data.frame(need_races)
+# hist(need_races$year)
+# # most of the missing races are since 2021
+# need_races <- as.data.frame(need_races) %>% filter(year < 2021)
+# hist(need_races$year)
+# nrow(need_races)
+# # 45183
+#
+# need_races <- need_races %>% filter(ServiceLine != "Unmapped")
+# # 34173
+# hist(need_races$year)
+# need_races_uniqueID <- unique(need_races$UniqueIdentifier)
+# length(need_races_uniqueID)
+# # 4558 or about 15% of the 30434 patients
+# length(unique(all_visit_types_2016_2020$UniqueIdentifier))
+# # 30434
+#
+#
+#
+# panel.18 %>% filter(is.na(Race)) %>% nrow()
+# # 0
+# panel.18 %>% filter(Race == "") %>% nrow()
+# # 112
+# panel.18 %>% filter(Race == "Patient Declined") %>% nrow()
+# # 3144
+# length(unique(all_visit_types_2021_2025$UniqueIdentifier))
+# # 52506
+# # about 6% are unrecorded
+#
+# # with(panel.18, table(Race))
+#
+#
+#
