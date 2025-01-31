@@ -3,11 +3,15 @@
 library(tidyverse)
 library(lubridate)
 library(zoo)
+library(rstudioapi)
 
+setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
+fp_ex_enc = file.path(getwd(), "Raw Data/UWExtraEncounterData.csv")
+fp_enc = file.path(getwd(), "Raw Data/UWDataEncounters.csv")
 
-all_visit_types_2016_2021 <- read.csv("~/BIOST CLASSES/597 Capstone with Lloyd Mancl/597 Capstone/Raw Data/UWExtraEncounterData.csv")
+all_visit_types_2016_2021 <- read.csv(fp_ex_enc)
 # Jan 2016 to Dec 2021
-all_visit_types_2021_2025 <- read.csv("~/BIOST CLASSES/597 Capstone with Lloyd Mancl/597 Capstone/Raw Data/UWDataEncounters.csv")
+all_visit_types_2021_2025 <- read.csv(fp_enc)
 # Jan 2021 ro Jan 2025
 
 
@@ -53,7 +57,8 @@ nrow(all_visit_types_2016_2020) + nrow(all_visit_types_2021_2025) == nrow(all_vi
 #ER2021_2025 <- all_visit_types |> filter(ServiceLine == "Emergency") #!  | ServiceLine == "Urgent Care"
 ER2016_2025 <- all_visit_types |> filter(ServiceLine == "Emergency") #!  | ServiceLine == "Urgent Care"
 
-panel <- read.csv("~/BIOST CLASSES/597 Capstone with Lloyd Mancl/597 Capstone/Raw Data/UWDataPanel.csv") # demographics
+fp_pnl = file.path(getwd(), "Raw Data/UWDataPanel.csv")
+panel <- read.csv(fp_pnl) # demographics
 
 # from Gabby's EDA code
 
