@@ -347,11 +347,14 @@ all_visit_types$Date <- as.Date(all_visit_types$Date, format = "%m/%d/%Y")
 
 class(all_visit_types$Date)
 # visualize how long M patients have been there
-all_visit_types %>% filter(UniqueIdentifier %in% MarshalleseUniqueID ) %>% mutate(extra = if_else((year %in% 2016:2020), 1, 0, NA)) %>% # arrange(extra, UniqueIdentifier) %>%
+all_visit_types %>% filter(UniqueIdentifier %in% MarshalleseUniqueID ) %>% mutate(extra = if_else((year %in% 2016:2020), 1, 0, NA)) %>%  
+  # arrange(extra, UniqueIdentifier) %>%  this worked to move them all to the top but it also made shifts in the lines that weren't as clear
+  # mutate(Row_Number = row_number()) %>% 
+  # y = Row_Number
   ggplot(aes(x = Date, y = UniqueIdentifier, group = UniqueIdentifier, col = extra)) +
   geom_line()
 
-# figure out how many races we are missing
+# figure out how many races we are missing  - This was excluding the kids because we used panel.18! 
 # colnames(panel.18)
 # all_races <- panel.18 %>% select(UniqueID, KOHParticipant, Ethnicity, Race)
 # colnames(all_visit_types)
