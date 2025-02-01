@@ -166,7 +166,7 @@ hist(koh.table1$koh.counts)
 summary(koh.table1$koh.counts)
 summary(as.factor(koh.table1$koh.counts))
 ```
-## Primary Objective - pre and post analysis datasets ##
+## Primary Objective - Hypertension pre and post analysis datasets ##
 subsetting koh patients with hypertension
 ```{r}
 # get pts with htn
@@ -272,6 +272,53 @@ obj1.bp.pre.post <- obj1.bp.pre.post %>% mutate(KOH.none = ifelse(koh.counts == 
 write.csv(obj1.bp.pre.post, 'Obj1BPPrePost.csv')
 ```
 
+## Primary objective hypertension longitudinal analysis datasets ##
+koh patients
+```{r}
+# these are all the "pre" KOH BP measurements
+koh.bp.pre.all <- koh.mtg1.bp %>% filter(datediff<=0) %>% group_by(UniqueIdentifier) %>% arrange(desc(datediff), .by_group=TRUE) %>% slice_head() %>% select(-(datediff)) %>%
+  rename(KOH.start.dt = KOHDate)
+
+# now finding all BP measures for "post" KOH
+koh.bp.post.all <- koh.mtg1.bp %>% filter(datediff>0) %>% select(-(datediff)) %>%
+  rename(KOH.start.dt = KOHDate)
+# combining baseline and subsequent measurements
+koh.bp.all <- bind_rows(koh.bp.pre.all, koh.bp.post.all)
+# making sure final list has both a pre and post timepoint
+koh.bp.pre.post.pt <- koh.bp.pre.post %>% select(UniqueIdentifier)
+koh.bp.all.elig <- left_join(koh.bp.pre.post.pt, koh.bp.all, by = "UniqueIdentifier")
+koh.bp.all.elig$KOH <- 1
+```
+
+marshallese non-koh patients
+```{r}
+# these are all the "pre" KOH BP measurements
+marsh.non.bp.pre.all <- marsh.non.bp.elig %>% filter(datediff<=0) %>% group_by(UniqueIdentifier) %>% arrange(desc(datediff), .by_group=TRUE) %>% slice_head() %>% select(-(datediff)) %>%
+  rename(KOH.start.dt = KOHDate)
+
+# now finding all BP measures for "post" KOH
+marsh.non.bp.post.all <- marsh.non.bp.elig %>% filter(datediff>0) %>% select(-(datediff)) %>%
+  rename(KOH.start.dt = KOHDate)
+# combining baseline and subsequent measurements
+marsh.non.bp.all <- bind_rows(marsh.non.bp.pre.all, marsh.non.bp.post.all)
+# making sure final list has both a pre and post timepoint
+marsh.non.bp.pre.post.pt <- marsh.non.bp.pre.post %>% select(UniqueIdentifier)
+marsh.non.bp.all.elig <- left_join(marsh.non.bp.pre.post.pt, marsh.non.bp.all, by = "UniqueIdentifier")
+marsh.non.bp.all.elig$KOH <- 0
+
+# combining koh with non-koh
+obj1.bp.lme <- bind_rows(koh.bp.all.elig, marsh.non.bp.all.elig)
+obj1.bp.lme <- left_join(obj1.bp.lme, koh.counts, by = "UniqueIdentifier")
+obj1.bp.lme$koh.counts[is.na(obj1.bp.lme$koh.counts)] <- 0
+# discretizing koh attendance
+obj1.bp.lme <- obj1.bp.lme %>% mutate(KOH.none = ifelse(koh.counts == 0, 1, 0),
+                                                KOH.one = ifelse(koh.counts == 1, 1, 0),
+                                                KOH.mult = ifelse(koh.counts > 1, 1, 0))
+
+write.csv(obj1.bp.lme, 'Obj1BP_LME.csv')
+```
+
+## Primary Objective - Diabetes pre and post analysis datasets ##
 subsetting koh patients with prediabetes or T2DM
 ```{r}
 # get pts with diabetes
@@ -363,12 +410,62 @@ koh.a1c.pre.post_long <- koh.a1c.pre.post %>%
   ) %>%
   select(UniqueIdentifier, A1cDate, A1c)
 koh.a1c.pre.post_long$KOH <- 1
-obj1.pre.post <- bind_rows(koh.a1c.pre.post_long, marsh.non.a1c.pre.post_long)
-obj1.pre.post$KOH[is.na(obj1.pre.post$KOH)] <- 0
+obj1.a1c.pre.post <- bind_rows(koh.a1c.pre.post_long, marsh.non.a1c.pre.post_long)
+obj1.a1c.pre.post$KOH[is.na(obj1.a1c.pre.post$KOH)] <- 0
+obj1.a1c.pre.post <- left_join(obj1.a1c.pre.post, koh.counts, by = "UniqueIdentifier")
+obj1.a1c.pre.post$koh.counts[is.na(obj1.a1c.pre.post$koh.counts)] <- 0
+# discretizing koh attendance
+obj1.a1c.pre.post <- obj1.a1c.pre.post %>% mutate(KOH.none = ifelse(koh.counts == 0, 1, 0),
+                                                KOH.one = ifelse(koh.counts == 1, 1, 0),
+                                                KOH.mult = ifelse(koh.counts > 1, 1, 0))
 
-#write.csv(obj1.pre.post, 'Obj1A1cPrePost.csv')
+write.csv(obj1.a1c.pre.post, 'Obj1A1cPrePost.csv')
 ```
-*** next on Gabby's TO DO list is constructing the analysis data set for the longitudinal KOH analysis ***
+## Primary objective Diabetes longitudinal analysis datasets ##
+koh pts
+```{r}
+# these are all the "pre" KOH A1c measurements
+koh.a1c.pre.all <- koh.mtg1.a1c %>% filter(datediff<=0) %>% group_by(UniqueIdentifier) %>% arrange(desc(datediff), .by_group=TRUE) %>% slice_head() %>% select(-(datediff)) %>%
+  rename(KOH.start.dt = KOHDate)
+
+# now finding all A1c measures for "post" KOH
+koh.a1c.post.all <- koh.mtg1.a1c %>% filter(datediff>0) %>% select(-(datediff)) %>%
+  rename(KOH.start.dt = KOHDate)
+# combining baseline and subsequent measurements
+koh.a1c.all <- bind_rows(koh.a1c.pre.all, koh.a1c.post.all)
+# making sure final list has both a pre and post timepoint
+koh.a1c.pre.post.pt <- koh.a1c.pre.post %>% select(UniqueIdentifier)
+koh.a1c.all.elig <- left_join(koh.a1c.pre.post.pt, koh.a1c.all, by = "UniqueIdentifier")
+koh.a1c.all.elig$KOH <- 1
+```
+
+marshallese non-koh pts
+```{r}
+# these are all the "pre" KOH A1c measurements
+marsh.non.a1c.pre.all <- marsh.non.a1c.elig %>% filter(datediff<=0) %>% group_by(UniqueIdentifier) %>% arrange(desc(datediff), .by_group=TRUE) %>% slice_head() %>% select(-(datediff)) %>%
+  rename(KOH.start.dt = KOHDate)
+
+# now finding all A1c measures for "post" KOH
+marsh.non.a1c.post.all <- marsh.non.a1c.elig %>% filter(datediff>0) %>% select(-(datediff)) %>%
+  rename(KOH.start.dt = KOHDate)
+# combining baseline and subsequent measurements
+marsh.non.a1c.all <- bind_rows(marsh.non.a1c.pre.all, marsh.non.a1c.post.all)
+# making sure final list has both a pre and post timepoint
+marsh.non.a1c.pre.post.pt <- marsh.non.a1c.pre.post %>% select(UniqueIdentifier)
+marsh.non.a1c.all.elig <- left_join(marsh.non.a1c.pre.post.pt, marsh.non.a1c.all, by = "UniqueIdentifier")
+marsh.non.a1c.all.elig$KOH <- 0
+
+obj1.a1c.lme <- bind_rows(koh.a1c.all.elig, marsh.non.a1c.all.elig)
+obj1.a1c.lme <- left_join(obj1.a1c.lme, koh.counts, by = "UniqueIdentifier")
+obj1.a1c.lme$koh.counts[is.na(obj1.a1c.lme$koh.counts)] <- 0
+# discretizing koh attendance
+obj1.a1c.lme <- obj1.a1c.lme %>% mutate(KOH.none = ifelse(koh.counts == 0, 1, 0),
+                                                KOH.one = ifelse(koh.counts == 1, 1, 0),
+                                                KOH.mult = ifelse(koh.counts > 1, 1, 0))
+
+write.csv(obj1.a1c.lme, 'Obj1A1c_LME.csv')
+```
+
 
 table 1 for all Marshallese and non-Marshallese
 ```{r echo=FALSE, warning=FALSE}
@@ -502,11 +599,11 @@ enc.race <- inner_join(pop.race, enc.nona.18, by='UniqueIdentifier')
 
 # isolate year to use in table
 enc.race$year <- as.factor(as.numeric(format(enc.race$Date, "%Y")))
-enc.race$Group <- factor(enc.race$Group, levels = c("Marshallese","Non-Marshallese"))
 enc.race$ServiceLine[enc.race$ServiceLine == "Unmapped"] <- "Other"
 enc.race$ServiceLine <- factor(enc.race$ServiceLine,
                                levels = c("Primary Care", "Emergency", "Urgent Care", "Behavioral Health",
-                                          "Pharmacy", "Health Equity", "Dental", "Multispecialty", "Other"))# calculate number of type of visit per year for each patient
+                                          "Pharmacy", "Health Equity", "Dental", "Multispecialty", "Other"))
+# calculate number of type of visit per year for each patient
 enc.counts <- enc.race %>% group_by(UniqueIdentifier, year, ServiceLine) %>% count(name = "enc.counts")
 enc.counts.race <- inner_join(pop.race, enc.counts, by='UniqueIdentifier')
 enc.counts.race$Group <- factor(enc.counts.race$Group, levels = c("Marshallese","Non-Marshallese"))
