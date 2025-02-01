@@ -25,6 +25,7 @@ diag <- read.csv("Raw Data/UWDataDiagnoses.csv")
 enc <- read.csv("Raw Data/UWDataEncounters.csv")
 panel <- read.csv("Raw Data/UWDataPanel.csv")
 koh.attend <- read.csv("Raw Data/UWDataKOHAttendance.csv")
+enc.extra <- read.csv("Raw Data/UWExtraEncounterData.csv")
 ```
 
 Changing any cases where PreDM=1 and T2DM=1 to PreDM=0 for the descriptive statistics
@@ -43,6 +44,7 @@ bmi.nona <- bmi %>% filter(!is.na(Date) & !is.na(BMI))
 bp$Date <- mdy(bp$Date)
 bp.nona <- bp %>% filter(!is.na(Date) & !is.na(Systolic))
 
+enc <- bind_rows(enc, enc.extra)
 enc$Date <- mdy(enc$Date)
 enc.nona <- enc %>% filter(!is.na(Date) & !is.na(ServiceLine))
 
@@ -95,6 +97,9 @@ lang <- panel.18 %>% filter(Language == 'Marshallese')
 # create our population of non-hispanic whites and marshallese (language = marsh or race = marsh or KOH = 1) - think there might be a KOH participant that doesn't have race or language as marshallese but I need to double check
 targetpop <- panel.18 %>% filter(Race == 'Marshallese' | Language == 'Marshallese' | KOHParticipant == 1 | (Race == 'White' & Ethnicity == 'Not Hispanic or Latino'))
 
+# remove any homeless population
+targetpop <- targetpop %>% filter(No.column.name != 'Homeless Shelter' & No.column.name != 'Street')
+
 # make marshallese indicator variable
 targetpop <- targetpop %>% 
   mutate(Marsh = ifelse((Race == 'Marshallese' | Language == 'Marshallese' | KOHParticipant == 1), 1, 0),
@@ -105,8 +110,7 @@ targetpop <- targetpop %>%
 # Prep for table 1
 unique(targetpop$No.column.name)
 targetpop$No.column.name <- factor(targetpop$No.column.name, 
-                                   levels = c('Housed','Doubling Up','Permanent Supportive Housing','Transitional','Homeless Shelter',
-                                              'Street','Other','Unknown'))
+                                   levels = c('Housed','Doubling Up','Permanent Supportive Housing','Transitional','Other','Unknown'))
 
 typeof(targetpop$Language)
 unique(targetpop$ClinicLocation)
@@ -122,7 +126,7 @@ table1 <- right_join(diag.nona.18, targetpop, by = "UniqueIdentifier")
 
 # create subset of only KOH participants
 koh <- table1 %>% filter(KOHParticipant == 1)
-koh.table1 <- left_join(koh.counts, koh, by = "UniqueIdentifier")
+koh.table1 <- inner_join(koh.counts, koh, by = "UniqueIdentifier")
 ```
 
 table 1 for KOH only
@@ -362,15 +366,16 @@ obj1.pre.post$KOH[is.na(obj1.pre.post$KOH)] <- 0
 
 table 1 for all Marshallese and non-Marshallese
 ```{r echo=FALSE, warning=FALSE}
-table1 %>% select(c('Group','age','Sex.long','HTN','Diabetes','both','ClinicLocation','No.column.name','IncomeLevel','BLACERISK')) %>%
+table1 %>% select(c('Group','age','Sex.long','HTN','PreDM','T2DM','both','ClinicLocation','No.column.name','IncomeLevel','BLACERISK')) %>%
    gtsummary::tbl_summary(
      by = Group,
-     include=c(age, Sex.long, HTN, Diabetes, both, ClinicLocation, No.column.name, IncomeLevel, BLACERISK),
+     include=c(age, Sex.long, HTN, PreDM, T2DM, both, ClinicLocation, No.column.name, IncomeLevel, BLACERISK),
      list(
        age ~ 'Age',
        Sex.long ~ 'Sex',
        HTN ~ 'Hypertension',
-       Diabetes ~ 'Pre-Diabetes or T2DM',
+       PreDM ~ 'Pre-Diabetes',
+       T2DM ~ 'Type II Diabetes',
        both ~ 'Hypertension and T2DM',
        ClinicLocation ~ 'Clinic Location',
        No.column.name ~ 'Housing Status',
@@ -479,5 +484,11 @@ ggplot(pc_trends, aes(x=Date, y=visits, color=race, group=race)) +
     y="Number of Visits",
     color="Race"
   )
+```
+
+## Encounters Table ##
+```{r}
+pop.race <- targetpop %>% select(c('UniqueIdentifier','Group'))
+enc.race <- inner_join(pop.race, enc.nona.18, by='UniqueIdentifier')
 ```
 
