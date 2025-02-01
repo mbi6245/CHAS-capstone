@@ -262,8 +262,14 @@ koh.bp.pre.post_long <- koh.bp.pre.post %>%
 koh.bp.pre.post_long$KOH <- 1
 obj1.bp.pre.post <- bind_rows(koh.bp.pre.post_long, marsh.non.bp.pre.post_long)
 obj1.bp.pre.post$KOH[is.na(obj1.bp.pre.post$KOH)] <- 0
+obj1.bp.pre.post <- left_join(obj1.bp.pre.post, koh.counts, by = "UniqueIdentifier")
+obj1.bp.pre.post$koh.counts[is.na(obj1.bp.pre.post$koh.counts)] <- 0
+# discretizing koh attendance
+obj1.bp.pre.post <- obj1.bp.pre.post %>% mutate(KOH.none = ifelse(koh.counts == 0, 1, 0),
+                                                KOH.one = ifelse(koh.counts == 1, 1, 0),
+                                                KOH.mult = ifelse(koh.counts > 1, 1, 0))
 
-#write.csv(obj1.bp.pre.post, 'Obj1BPPrePost.csv')
+write.csv(obj1.bp.pre.post, 'Obj1BPPrePost.csv')
 ```
 
 subsetting koh patients with prediabetes or T2DM
@@ -488,7 +494,66 @@ ggplot(pc_trends, aes(x=Date, y=visits, color=race, group=race)) +
 
 ## Encounters Table ##
 ```{r}
+# getting the dataset in the proper form
+
 pop.race <- targetpop %>% select(c('UniqueIdentifier','Group'))
+# add race to encounters table
 enc.race <- inner_join(pop.race, enc.nona.18, by='UniqueIdentifier')
+
+# isolate year to use in table
+enc.race$year <- as.factor(as.numeric(format(enc.race$Date, "%Y")))
+enc.race$Group <- factor(enc.race$Group, levels = c("Marshallese","Non-Marshallese"))
+enc.race$ServiceLine[enc.race$ServiceLine == "Unmapped"] <- "Other"
+enc.race$ServiceLine <- factor(enc.race$ServiceLine,
+                               levels = c("Primary Care", "Emergency", "Urgent Care", "Behavioral Health",
+                                          "Pharmacy", "Health Equity", "Dental", "Multispecialty", "Other"))# calculate number of type of visit per year for each patient
+enc.counts <- enc.race %>% group_by(UniqueIdentifier, year, ServiceLine) %>% count(name = "enc.counts")
+enc.counts.race <- inner_join(pop.race, enc.counts, by='UniqueIdentifier')
+enc.counts.race$Group <- factor(enc.counts.race$Group, levels = c("Marshallese","Non-Marshallese"))
+enc.counts.wide <- enc.counts.race %>%
+  pivot_wider(
+    names_from = ServiceLine,
+    values_from = enc.counts,
+    values_fill = 0 # Fill missing values with 0
+  )
+enc.counts.wide <- enc.counts.wide %>% rename(PrimaryCare = 'Primary Care', UrgentCare = 'Urgent Care',
+                                              Behavioral = 'Behavioral Health', Equity = 'Health Equity') %>%
+  mutate(across(c(PrimaryCare, Emergency, UrgentCare, Behavioral, Pharmacy, 
+                  Equity, Dental, Multispecialty, Other), as.numeric))
+```
+i think i still need to adjust this table a bit but it's fine for now. I removed visit types (Health Equity and Other) that had 0 visits for multiple years as well. 2016, 2017, and 2025 didn't have much data either so I removed them. Then I removed years 2018 and 2019 just to make the table a bit smaller since it was so wide.
+```{r}
+# making the encounters table
+enc.counts.wide %>%
+  select(year, Group, PrimaryCare, Emergency, UrgentCare, Behavioral, Pharmacy, Dental, Multispecialty) %>%
+  filter(year != "2016" & year != "2017" & year != "2018" & year != "2019" & year != "2025") %>%
+  mutate(across(c(PrimaryCare, Emergency, UrgentCare, Behavioral, Pharmacy, 
+                  Dental, Multispecialty), as.numeric)) %>%
+  tbl_strata(
+    strata = year,
+    .tbl_fun = ~ .x %>%
+        gtsummary::tbl_summary(
+         by = Group,
+        include = c(PrimaryCare, Emergency, UrgentCare, Behavioral, Pharmacy, Dental, Multispecialty),
+        label = list(
+          PrimaryCare ~ 'Primary Care',
+          Emergency ~ 'Emergency',
+          UrgentCare ~ 'Urgent Care',
+          Behavioral ~ 'Behavioral Health',
+          Pharmacy ~ 'Pharmacy',
+          Dental ~ 'Dental',
+          Multispecialty ~ 'Multispecialty'
+        ),
+        missing="no",
+        type = all_continuous() ~ "continuous",
+        statistic = all_continuous() ~ c("{mean} ({min}, {max})"),
+        digits = all_continuous() ~ 1
+      )
+  ) %>%
+  bold_labels() %>%
+  modify_footnote(c(all_stat_cols()) ~ "Mean (Minimum, Maximum)") %>%
+  modify_header(label ~ "**Mean Visits per Patient**") %>%
+  modify_header(all_stat_cols() ~ "**{level}**<br>\nN = {n}") %>%
+  as_flex_table()
 ```
 
