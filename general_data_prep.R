@@ -1,6 +1,6 @@
-######################################################################################
-# README: run this file before running any analyses to create analysis dataset objects
-######################################################################################
+####################################################################
+# performs general data preparation before analysis dataset creation
+####################################################################
 
 setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 fp_a1c = file.path(getwd(), "Raw Data/UWDataA1cs.csv")
@@ -81,27 +81,23 @@ marsh <- panel.18 %>% filter(Race == 'Marshallese')
 lang <- panel.18 %>% filter(Language == 'Marshallese')
 
 # create our population of non-hispanic whites and marshallese (language = marsh or race = marsh or KOH = 1) 
-targetpop_temp <- panel.18 %>% filter(Race == 'Marshallese' | Language == 'Marshallese' | KOHParticipant == 1 | (Race == 'White' & Ethnicity == 'Not Hispanic or Latino'))
+targetpop <- panel.18 %>% filter(Race == 'Marshallese' | Language == 'Marshallese' | KOHParticipant == 1 | (Race == 'White' & Ethnicity == 'Not Hispanic or Latino'))
 
 # remove any homeless population
-targetpop_temp <- targetpop_temp %>% filter(No.column.name != 'Homeless Shelter' & No.column.name != 'Street')
+targetpop <- targetpop %>% filter(No.column.name != 'Homeless Shelter' & No.column.name != 'Street')
 
 # make marshallese indicator variable
-targetpop_temp <- targetpop_temp %>% 
+targetpop <- targetpop %>% 
   mutate(Marsh = ifelse((Race == 'Marshallese' | Language == 'Marshallese' | KOHParticipant == 1), 1, 0),
          Group = ifelse(Marsh == 1, "Marshallese", "Non-Marshallese"))
 
-targetpop_temp$No.column.name <- factor(targetpop_temp$No.column.name, 
+targetpop$No.column.name <- factor(targetpop$No.column.name, 
                                    levels = c('Housed','Doubling Up','Permanent Supportive Housing','Transitional','Other','Unknown'))
 
-# replace all the blanks in the character variables with NAs so we can count the missings in the table
-# targetpop <- targetpop %>% replace_with_na_all(condition = ~.x == "")
-targetpop_temp = targetpop_temp %>% mutate(Marsh = if_else(UniqueIdentifier %in% c(94813, 402761, 50526), 0, Marsh),
+# reconciling new targetpop with original targetpop from EDA.Rmd
+targetpop = targetpop %>% mutate(Marsh = if_else(UniqueIdentifier %in% c(94813, 402761, 50526), 0, Marsh),
                                            Group = if_else(UniqueIdentifier %in% c(94813, 402761, 50526), "Non-Marshallese", Group))
-# targetpop_temp %>% filter(UniqueIdentifier %in% c(94813, 402761, 50526)) %>% mutate(Marsh = 0, Group = 0)
-targetpop_temp = tibble(targetpop_temp)
-
-identical(targetpop, targetpop_temp)
+targetpop = tibble(targetpop)
 
 # get rid of the age variable we got from merging to filter out children since targetpop already has age
 diag.nona.18 <- diag.nona.18 %>% select(-age)
@@ -111,6 +107,4 @@ table1 <- right_join(diag.nona.18, targetpop, by = "UniqueIdentifier")
 
 # create subset of only KOH participants
 koh <- table1 %>% filter(KOHParticipant == 1)
-koh.table1_temp <- inner_join(koh.counts, koh, by = "UniqueIdentifier")
-
-
+koh.table1 <- inner_join(koh.counts, koh, by = "UniqueIdentifier")
