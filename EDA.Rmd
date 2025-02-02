@@ -129,37 +129,6 @@ koh <- table1 %>% filter(KOHParticipant == 1)
 koh.table1 <- inner_join(koh.counts, koh, by = "UniqueIdentifier")
 ```
 
-table 1 for KOH only
-```{r echo=FALSE, warning=FALSE}
-koh.table1 %>% select(c('age','Sex.long','koh.counts','HTN','PreDM','T2DM','both','ClinicLocation','No.column.name','IncomeLevel','BLACERISK')) %>%
-   gtsummary::tbl_summary(
-     by = NULL,
-     include = c(age, Sex.long, koh.counts, HTN, PreDM, T2DM, both, ClinicLocation, No.column.name, IncomeLevel, BLACERISK),
-     label = list(
-       age ~ 'Age',
-       Sex.long ~ 'Sex',
-       koh.counts ~ 'KOH Meetings Attended',
-       HTN ~ 'Hypertension',
-       PreDM ~ 'Pre-Diabetes',
-       T2DM ~ 'Type II Diabetes',
-       both ~ 'Hypertension and T2DM',
-       ClinicLocation ~ 'Clinic Location',
-       No.column.name ~ 'Housing Status',
-       IncomeLevel ~ 'Income Level',
-       BLACERISK ~ 'Risk Score'
-     ),
-     missing_text = "Missing",
-     type = all_continuous() ~ "continuous2",
-     statistic = all_continuous() ~ c(
-       "{median} ({min}, {max})"
-     )
-   )  %>%
-   bold_labels() %>%
-   modify_footnote(c(all_stat_cols()) ~ NA) %>%
-   modify_header(label ~ "**Baseline Characteristics**") %>%
-  modify_header(all_stat_cols() ~ "**KOH Participants**<br>\nN = {n}") %>%
-   as_flex_table()
-```
 distribution of KOH attendance
 ```{r}
 hist(koh.table1$koh.counts)
@@ -268,8 +237,10 @@ obj1.bp.pre.post$koh.counts[is.na(obj1.bp.pre.post$koh.counts)] <- 0
 obj1.bp.pre.post <- obj1.bp.pre.post %>% mutate(KOH.none = ifelse(koh.counts == 0, 1, 0),
                                                 KOH.one = ifelse(koh.counts == 1, 1, 0),
                                                 KOH.mult = ifelse(koh.counts > 1, 1, 0))
+obj1.bp.cov <- table1 %>% select(c(UniqueIdentifier, age, Sex, IncomeLevel, BLACERISK))
+obj1.bp.pre.post.full <- left_join(obj1.bp.pre.post, obj1.bp.cov, by="UniqueIdentifier")
 
-write.csv(obj1.bp.pre.post, 'Obj1BPPrePost.csv')
+write.csv(obj1.bp.pre.post.full, 'Obj1BPPrePost.csv')
 ```
 
 ## Primary objective hypertension longitudinal analysis datasets ##
@@ -314,8 +285,9 @@ obj1.bp.lme$koh.counts[is.na(obj1.bp.lme$koh.counts)] <- 0
 obj1.bp.lme <- obj1.bp.lme %>% mutate(KOH.none = ifelse(koh.counts == 0, 1, 0),
                                                 KOH.one = ifelse(koh.counts == 1, 1, 0),
                                                 KOH.mult = ifelse(koh.counts > 1, 1, 0))
+obj1.bp.lme.full <- left_join(obj1.bp.lme, obj1.bp.cov, by="UniqueIdentifier")
 
-write.csv(obj1.bp.lme, 'Obj1BP_LME.csv')
+write.csv(obj1.bp.lme.full, 'Obj1BP_LME.csv')
 ```
 
 ## Primary Objective - Diabetes pre and post analysis datasets ##
@@ -418,8 +390,9 @@ obj1.a1c.pre.post$koh.counts[is.na(obj1.a1c.pre.post$koh.counts)] <- 0
 obj1.a1c.pre.post <- obj1.a1c.pre.post %>% mutate(KOH.none = ifelse(koh.counts == 0, 1, 0),
                                                 KOH.one = ifelse(koh.counts == 1, 1, 0),
                                                 KOH.mult = ifelse(koh.counts > 1, 1, 0))
+obj1.a1c.pre.post.full <- left_join(obj1.a1c.pre.post, obj1.bp.cov, by="UniqueIdentifier")
 
-write.csv(obj1.a1c.pre.post, 'Obj1A1cPrePost.csv')
+write.csv(obj1.a1c.pre.post.full, 'Obj1A1cPrePost.csv')
 ```
 ## Primary objective Diabetes longitudinal analysis datasets ##
 koh pts
@@ -462,8 +435,54 @@ obj1.a1c.lme$koh.counts[is.na(obj1.a1c.lme$koh.counts)] <- 0
 obj1.a1c.lme <- obj1.a1c.lme %>% mutate(KOH.none = ifelse(koh.counts == 0, 1, 0),
                                                 KOH.one = ifelse(koh.counts == 1, 1, 0),
                                                 KOH.mult = ifelse(koh.counts > 1, 1, 0))
+obj1.a1c.lme.full <- left_join(obj1.a1c.lme, obj1.bp.cov, by="UniqueIdentifier")
 
-write.csv(obj1.a1c.lme, 'Obj1A1c_LME.csv')
+write.csv(obj1.a1c.lme.full, 'Obj1A1c_LME.csv')
+```
+
+make table 1 dataset for primary objective 249 unique patients 127 from bp and 221 from a1c
+```{r}
+# combine eligible bp and a1c patients and get table 1 covariates
+obj1 <- full_join(obj1.bp.pre.post, obj1.a1c.pre.post, 
+                  by = c("UniqueIdentifier", "KOH","koh.counts","KOH.none","KOH.one","KOH.mult")) %>%
+  select(c(UniqueIdentifier, KOH, koh.counts)) %>% slice_head()
+
+obj1 <- left_join(obj1, table1, by = "UniqueIdentifier")
+obj1 <- obj1 %>% mutate(KOH.cat = case_when(KOH == 1 ~ 'KOH Participant',
+                                            KOH == 0 ~ 'Non-Participant'))
+```
+
+table 1 for primary objective population
+
+```{r echo=FALSE, warning=FALSE}
+obj1 %>% select(c('KOH.cat','age','Sex.long','koh.counts','HTN','PreDM','T2DM','both','ClinicLocation','No.column.name','IncomeLevel','BLACERISK')) %>%
+   gtsummary::tbl_summary(
+     by = KOH.cat,
+     include = c(age, Sex.long, koh.counts, HTN, PreDM, T2DM, both, ClinicLocation, No.column.name, IncomeLevel, BLACERISK),
+     label = list(
+       age ~ 'Age',
+       Sex.long ~ 'Sex',
+       koh.counts ~ 'KOH Meetings Attended',
+       HTN ~ 'Hypertension',
+       PreDM ~ 'Pre-Diabetes',
+       T2DM ~ 'Type II Diabetes',
+       both ~ 'Hypertension and T2DM',
+       ClinicLocation ~ 'Clinic Location',
+       No.column.name ~ 'Housing Status',
+       IncomeLevel ~ 'Income Level',
+       BLACERISK ~ 'Risk Score'
+     ),
+     missing_text = "Missing",
+     type = all_continuous() ~ "continuous",
+     statistic = all_continuous() ~ c(
+       "{median} ({min}, {max})"
+     )
+   )  %>%
+   bold_labels() %>%
+   modify_footnote(c(all_stat_cols()) ~ NA) %>%
+   modify_header(label ~ "**Baseline Characteristics**") %>%
+  modify_header(all_stat_cols() ~ "**{level}**<br>\nN = {n}") %>%
+   as_flex_table()
 ```
 
 
