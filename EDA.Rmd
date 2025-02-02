@@ -2,7 +2,9 @@
 title: "Capstone EDA"
 author: "Gabby Lopez"
 date: "`r Sys.Date()`"
-output: pdf_document
+output:
+  word_document: default
+  pdf_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -130,14 +132,14 @@ koh.table1 <- inner_join(koh.counts, koh, by = "UniqueIdentifier")
 ```
 
 distribution of KOH attendance
-```{r}
+```{r echo=FALSE}
 hist(koh.table1$koh.counts)
 summary(koh.table1$koh.counts)
 summary(as.factor(koh.table1$koh.counts))
 ```
 ## Primary Objective - Hypertension pre and post analysis datasets ##
 subsetting koh patients with hypertension
-```{r}
+```{r include=FALSE}
 # get pts with htn
 koh.htn <- koh.table1 %>% filter(HTN == 1)
 # isolate the patient ids
@@ -174,7 +176,7 @@ koh.bp.pre.post <- inner_join(koh.bp.pre, koh.bp.post, by="UniqueIdentifier")
 ```
 
 subsetting marshallese non-koh pts with HTN
-```{r}
+```{r include=FALSE}
 marsh.non.htn <- table1 %>% filter(Marsh == 1 & KOHParticipant == 0 & HTN == 1)
 # isolate the patient ids
 marsh.non.htn.patlist <- marsh.non.htn %>% select("UniqueIdentifier")
@@ -245,7 +247,7 @@ write.csv(obj1.bp.pre.post.full, 'Obj1BPPrePost.csv')
 
 ## Primary objective hypertension longitudinal analysis datasets ##
 koh patients
-```{r}
+```{r include=FALSE}
 # these are all the "pre" KOH BP measurements
 koh.bp.pre.all <- koh.mtg1.bp %>% filter(datediff<=0) %>% group_by(UniqueIdentifier) %>% arrange(desc(datediff), .by_group=TRUE) %>% slice_head() %>% select(-(datediff)) %>%
   rename(KOH.start.dt = KOHDate)
@@ -262,7 +264,7 @@ koh.bp.all.elig$KOH <- 1
 ```
 
 marshallese non-koh patients
-```{r}
+```{r include=FALSE}
 # these are all the "pre" KOH BP measurements
 marsh.non.bp.pre.all <- marsh.non.bp.elig %>% filter(datediff<=0) %>% group_by(UniqueIdentifier) %>% arrange(desc(datediff), .by_group=TRUE) %>% slice_head() %>% select(-(datediff)) %>%
   rename(KOH.start.dt = KOHDate)
@@ -292,7 +294,7 @@ write.csv(obj1.bp.lme.full, 'Obj1BP_LME.csv')
 
 ## Primary Objective - Diabetes pre and post analysis datasets ##
 subsetting koh patients with prediabetes or T2DM
-```{r}
+```{r include=FALSE}
 # get pts with diabetes
 koh.t2dm <- koh.table1 %>% filter(Diabetes == 1)
 # isolate the patient ids
@@ -326,7 +328,7 @@ koh.a1c.pre.post <- inner_join(koh.a1c.pre, koh.a1c.post, by="UniqueIdentifier")
 ```
 
 subsetting marshallese non-koh pts with diabetes
-```{r}
+```{r include=FALSE}
 marsh.non.dia <- table1 %>% filter(Marsh == 1 & KOHParticipant == 0 & Diabetes == 1)
 # isolate the patient ids
 marsh.non.dia.patlist <- marsh.non.dia %>% select("UniqueIdentifier")
@@ -396,7 +398,7 @@ write.csv(obj1.a1c.pre.post.full, 'Obj1A1cPrePost.csv')
 ```
 ## Primary objective Diabetes longitudinal analysis datasets ##
 koh pts
-```{r}
+```{r include=FALSE}
 # these are all the "pre" KOH A1c measurements
 koh.a1c.pre.all <- koh.mtg1.a1c %>% filter(datediff<=0) %>% group_by(UniqueIdentifier) %>% arrange(desc(datediff), .by_group=TRUE) %>% slice_head() %>% select(-(datediff)) %>%
   rename(KOH.start.dt = KOHDate)
@@ -413,7 +415,7 @@ koh.a1c.all.elig$KOH <- 1
 ```
 
 marshallese non-koh pts
-```{r}
+```{r include=FALSE}
 # these are all the "pre" KOH A1c measurements
 marsh.non.a1c.pre.all <- marsh.non.a1c.elig %>% filter(datediff<=0) %>% group_by(UniqueIdentifier) %>% arrange(desc(datediff), .by_group=TRUE) %>% slice_head() %>% select(-(datediff)) %>%
   rename(KOH.start.dt = KOHDate)
@@ -441,7 +443,7 @@ write.csv(obj1.a1c.lme.full, 'Obj1A1c_LME.csv')
 ```
 
 make table 1 dataset for primary objective 249 unique patients 127 from bp and 221 from a1c
-```{r}
+```{r include=FALSE}
 # combine eligible bp and a1c patients and get table 1 covariates
 obj1 <- full_join(obj1.bp.pre.post, obj1.a1c.pre.post, 
                   by = c("UniqueIdentifier", "KOH","koh.counts","KOH.none","KOH.one","KOH.mult")) %>%
@@ -453,7 +455,7 @@ obj1 <- obj1 %>% mutate(KOH.cat = case_when(KOH == 1 ~ 'KOH Participant',
 ```
 
 table 1 for primary objective population
-
+\pagebreak
 ```{r echo=FALSE, warning=FALSE}
 obj1 %>% select(c('KOH.cat','age','Sex.long','koh.counts','HTN','PreDM','T2DM','both','ClinicLocation','No.column.name','IncomeLevel','BLACERISK')) %>%
    gtsummary::tbl_summary(
@@ -520,7 +522,7 @@ table1 %>% select(c('Group','age','Sex.long','HTN','PreDM','T2DM','both','Clinic
 
 # One-Time KOH Attendance Distribution
 
-```{r}
+```{r echo=FALSE}
 koh_1x = koh.counts %>% filter(koh.counts == 1)
 koh_1x = koh_1x %>% 
   left_join(koh.attend.18, by="UniqueIdentifier") %>% 
@@ -540,7 +542,7 @@ ggplot(koh_1x, aes(x=Date, y=attendees)) +
 
 # Preliminary Parallel Trends EDA
 
-```{r}
+```{r echo=FALSE}
 # join encounter and panel data to get visit types by race
 enc_wraces = enc.nona.18 %>% 
   left_join(panel.18, by="UniqueIdentifier") %>% 
@@ -609,7 +611,7 @@ ggplot(pc_trends, aes(x=Date, y=visits, color=race, group=race)) +
 ```
 
 ## Encounters Table ##
-```{r}
+```{r include=FALSE}
 # getting the dataset in the proper form
 
 pop.race <- targetpop %>% select(c('UniqueIdentifier','Group'))
@@ -638,7 +640,7 @@ enc.counts.wide <- enc.counts.wide %>% rename(PrimaryCare = 'Primary Care', Urge
                   Equity, Dental, Multispecialty, Other), as.numeric))
 ```
 i think i still need to adjust this table a bit but it's fine for now. I removed visit types (Health Equity and Other) that had 0 visits for multiple years as well. 2016, 2017, and 2025 didn't have much data either so I removed them. Then I removed years 2018 and 2019 just to make the table a bit smaller since it was so wide.
-```{r}
+```{r echo=FALSE}
 # making the encounters table
 enc.counts.wide %>%
   select(year, Group, PrimaryCare, Emergency, UrgentCare, Behavioral, Pharmacy, Dental, Multispecialty) %>%
