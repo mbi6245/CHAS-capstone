@@ -452,6 +452,7 @@ obj1 <- full_join(obj1.bp.pre.post, obj1.a1c.pre.post,
 obj1 <- left_join(obj1, table1, by = "UniqueIdentifier")
 obj1 <- obj1 %>% mutate(KOH.cat = case_when(KOH == 1 ~ 'KOH Participant',
                                             KOH == 0 ~ 'Non-Participant'))
+
 ```
 
 table 1 for primary objective population
