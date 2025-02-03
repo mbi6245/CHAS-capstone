@@ -104,8 +104,10 @@ obj1.bp.pre.post$koh.counts[is.na(obj1.bp.pre.post$koh.counts)] <- 0
 obj1.bp.pre.post <- obj1.bp.pre.post %>% mutate(KOH.none = ifelse(koh.counts == 0, 1, 0),
                                                 KOH.one = ifelse(koh.counts == 1, 1, 0),
                                                 KOH.mult = ifelse(koh.counts > 1, 1, 0))
+obj1.bp.cov <- table1 %>% select(c(UniqueIdentifier, age, Sex, IncomeLevel, BLACERISK, avg.bmi))
+obj1.bp.pre.post.full <- left_join(obj1.bp.pre.post, obj1.bp.cov, by="UniqueIdentifier")
 
-write.csv(obj1.bp.pre.post, 'Analysis Data/Obj1BPPrePost.csv')
+write.csv(obj1.bp.pre.post.full, 'Analysis Data/Obj1BPPrePost.csv')
 
 # these are all the "pre" KOH BP measurements
 koh.bp.pre.all <- koh.mtg1.bp %>% filter(datediff<=0) %>% group_by(UniqueIdentifier) %>% arrange(desc(datediff), .by_group=TRUE) %>% slice_head() %>% select(-(datediff)) %>%
@@ -143,8 +145,9 @@ obj1.bp.lme$koh.counts[is.na(obj1.bp.lme$koh.counts)] <- 0
 obj1.bp.lme <- obj1.bp.lme %>% mutate(KOH.none = ifelse(koh.counts == 0, 1, 0),
                                       KOH.one = ifelse(koh.counts == 1, 1, 0),
                                       KOH.mult = ifelse(koh.counts > 1, 1, 0))
+obj1.bp.lme.full <- left_join(obj1.bp.lme, obj1.bp.cov, by="UniqueIdentifier")
 
-write.csv(obj1.bp.lme, 'Analysis Data/Obj1BP_LME.csv')
+write.csv(obj1.bp.lme.full, 'Analysis Data/Obj1BP_LME.csv')
 
 # get pts with diabetes
 koh.t2dm <- koh.table1 %>% filter(Diabetes == 1)
@@ -240,8 +243,9 @@ obj1.a1c.pre.post$koh.counts[is.na(obj1.a1c.pre.post$koh.counts)] <- 0
 obj1.a1c.pre.post <- obj1.a1c.pre.post %>% mutate(KOH.none = ifelse(koh.counts == 0, 1, 0),
                                                   KOH.one = ifelse(koh.counts == 1, 1, 0),
                                                   KOH.mult = ifelse(koh.counts > 1, 1, 0))
+obj1.a1c.pre.post.full <- left_join(obj1.a1c.pre.post, obj1.bp.cov, by="UniqueIdentifier")
 
-write.csv(obj1.a1c.pre.post, 'Analysis Data/Obj1A1cPrePost.csv')
+write.csv(obj1.a1c.pre.post.full, 'Analysis Data/Obj1A1cPrePost.csv')
 
 # these are all the "pre" KOH A1c measurements
 koh.a1c.pre.all <- koh.mtg1.a1c %>% filter(datediff<=0) %>% group_by(UniqueIdentifier) %>% arrange(desc(datediff), .by_group=TRUE) %>% slice_head() %>% select(-(datediff)) %>%
@@ -278,5 +282,18 @@ obj1.a1c.lme$koh.counts[is.na(obj1.a1c.lme$koh.counts)] <- 0
 obj1.a1c.lme <- obj1.a1c.lme %>% mutate(KOH.none = ifelse(koh.counts == 0, 1, 0),
                                         KOH.one = ifelse(koh.counts == 1, 1, 0),
                                         KOH.mult = ifelse(koh.counts > 1, 1, 0))
+obj1.a1c.lme.full <- left_join(obj1.a1c.lme, obj1.bp.cov, by="UniqueIdentifier")
 
-write.csv(obj1.a1c.lme, 'Analysis Data/Obj1A1c_LME.csv')
+write.csv(obj1.a1c.lme.full, 'Analysis Data/Obj1A1c_LME.csv')
+
+# make table 1 dataset for primary objective 249 unique patients 127 from bp and 221 from a1c
+# combine eligible bp and a1c patients and get table 1 covariates
+obj1 <- full_join(obj1.bp.pre.post, obj1.a1c.pre.post, 
+                  by = c("UniqueIdentifier", "KOH","koh.counts","KOH.none","KOH.one","KOH.mult")) %>%
+  select(c(UniqueIdentifier, KOH, koh.counts)) %>% slice_head()
+obj1 <- left_join(obj1, table1, by = "UniqueIdentifier")
+obj1 <- obj1 %>% mutate(KOH.cat = case_when(KOH == 1 ~ 'KOH Participant',
+                                            KOH == 0 ~ 'Non-Participant'))
+
+# this is the full dataset for table 1 for primary objective analysis population
+write.csv(obj1, 'Analysis Data/Obj1_AllPts.csv')

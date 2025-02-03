@@ -55,6 +55,8 @@ a1c.nona.18 <- a1c.nona.18 %>% filter(age >= 18)
 
 bmi.nona.18 <- left_join(bmi.nona, age, by = "UniqueIdentifier")
 bmi.nona.18 <- bmi.nona.18 %>% filter(age >= 18)
+bmi.nona.18 <- bmi.nona.18 %>% select(-age)
+avg.bmi <- bmi.nona.18 %>% group_by(UniqueIdentifier) %>% mutate(avg.bmi = mean(BMI)) %>% slice_head() %>% select(c(UniqueIdentifier, avg.bmi))
 
 bp.nona.18 <- left_join(bp.nona, age, by = "UniqueIdentifier")
 bp.nona.18 <- bp.nona.18 %>% filter(age >= 18)
@@ -104,6 +106,7 @@ diag.nona.18 <- diag.nona.18 %>% select(-age)
 
 # merge diagnosis data with other characteristics
 table1 <- right_join(diag.nona.18, targetpop, by = "UniqueIdentifier")
+table1 <- left_join(table1, avg.bmi, by = "UniqueIdentifier")
 
 # create subset of only KOH participants
 koh <- table1 %>% filter(KOHParticipant == 1)
