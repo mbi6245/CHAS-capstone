@@ -43,6 +43,7 @@ all_visit_types_2021_2025 <- all_visit_types_2021_2025 %>% mutate(year = lubrida
 
 colnames(all_visit_types_2021_2025) == colnames(all_visit_types_2016_2020)
 
+# combine all visit types across years
 all_visit_types <- rbind(all_visit_types_2016_2020, all_visit_types_2021_2025)
 
 nrow(all_visit_types_2016_2020) + nrow(all_visit_types_2021_2025) == nrow(all_visit_types)
@@ -85,7 +86,12 @@ ControlUniqueID <- Control$UniqueID
 #                                   Group = ifelse(Marsh == 1, "Marshallese", "Non-Marshallese"))
 
 
-# !remove unhoused from control? remove ages that exceed Marshallese?
+# !remove homeless from control? yes
+# targetpop
+panel.18 <- panel.18 %>% filter(No.column.name != "Homeless Shelter" |
+                       No.column.name != "Street" )
+
+# !remove ages that exceed Marshallese?
 
 # make table of ER visits per year
 
@@ -102,25 +108,13 @@ ER2016_2025_year <-  as.data.frame( with(ER2016_2025, table(year)))  # , useNA =
 
 # make table of ER visits per month
 
-
-
-
-ER2016_2025 <- ER2016_2025 %>% mutate(yearmonth = zoo::as.yearmon(ER2016_2025$Date, "%m/%d/%Y")) # "Feb 2024"
-
+ER2016_2025 <- ER2016_2025 %>% mutate(yearmonth = zoo::as.yearmon(ER2016_2025$Date, "%m/%d/%Y"), # shows as text "Feb 2024"
+                                      yearmonth_as_date =as.Date(as.yearmon(ER2016_2025$Date, "%m/%d/%Y"))) 
 # as.Date(as.yearmon(ER2016_2025$Date, "%m/%d/%Y")) # "2023-01-01" sets day to first day of month
-
-ER2016_2025_yearmonth <-  as.data.frame( with(ER2016_2025, table(yearmonth)))
-
-
-# ER And Urgent Care
-ERandUC2016_2025 <- all_visit_types |> filter(ServiceLine == "Emergency" | ServiceLine == "Urgent Care")
-
-ERandUC2016_2025_year <-  as.data.frame( with(ERandUC2016_2025, table(year)))  # , useNA = "always"
+ER2016_2025_yearmonth <-  as.data.frame( with(ER2016_2025, table(yearmonth_as_date)))
 
 
 # make table by Marshallese and Non-Hispanic white
-
-
 #colnames(ER2016_2025)
 ER2016_2025 <- ER2016_2025 %>% mutate(marsh = if_else((UniqueIdentifier %in% MarshalleseUniqueID), 1,
                                                       if_else((UniqueIdentifier %in% ControlUniqueID), 0, NA) ) ) %>%
@@ -129,87 +123,60 @@ ER2016_2025 <- ER2016_2025 %>% mutate(marsh = if_else((UniqueIdentifier %in% Mar
 # which(is.na(ER2016_2025$marsh))
 
 ER2016_2025_year_marsh <- as.data.frame( with(ER2016_2025, table(year, marsh)) ) #, useNA = "always"
-ER2016_2025_yearmonth_marsh <-  as.data.frame( with(ER2016_2025, table(yearmonth, marsh)))
+ER2016_2025_yearmonth_marsh <-  as.data.frame( with(ER2016_2025, table(yearmonth_as_date, marsh)))
 
-# ER And Urgent Care
 
-ERandUC2016_2025 <- ERandUC2016_2025 %>% mutate(marsh = if_else((UniqueIdentifier %in% MarshalleseUniqueID), 1,
-                                                      if_else((UniqueIdentifier %in% ControlUniqueID), 0, NA) ) ) %>%
-  filter(!is.na(marsh))
-ERandUC2016_2025_year_marsh <-  as.data.frame( with(ERandUC2016_2025, table(year, marsh)))  # , useNA = "always"
+ER2016_2025_yearmonth_marsh_wider <- pivot_wider(ER2016_2025_yearmonth_marsh, 
+                 names_from = yearmonth_as_date, 
+                 values_from = Freq)
 
-# Visualize the Trends of these 2 groups over time
-# Spaghetti plot
-# tlc_long %>%
-#   ggplot(aes(x=time, y=lead, group=id, color=tx))+
-#   geom_line()+
-#   facet_wrap(~tx)+
-#   labs(y="Lead (mg/dL)", x="Time (Weeks)")+
-#   scale_x_continuous(breaks=c(0,1,4,6))
 
-# ! I need to see if we have a good number of patients in the first 5 years as the 2nd five years
+ER2016_2025_yearmonth_marsh_wider <- pivot_wider(ER2016_2025_yearmonth_marsh_wider,
+                                           names_from = year,
+                                           values_from = Freq)
+
+ER2016_2025_yearmonth_marsh_wider <- as.data.frame(ER2016_2025_yearmonth_marsh_wider)
+rownames(ER2016_2025_yearmonth_marsh_wider) <- c("Marshallese", "Non-Hispanic White")
+ER2016_2025_yearmonth_marsh_wider <- ER2016_2025_yearmonth_marsh_wider[ , -1]
+#
 
 # Visualize the Trends of these 2 groups over time
-# Spaghetti plot
-# tlc_long %>%
-#   ggplot(aes(x=time, y=lead, group=id, color=tx))+
-#   geom_line()+
-#   facet_wrap(~tx)+
-#   labs(y="Lead (mg/dL)", x="Time (Weeks)")+
-#   scale_x_continuous(breaks=c(0,1,4,6))
 
-#!
-ER2016_2025_year_marsh %>% filter(marsh == 1) %>%
+
+# as.Date(as.yearmon(ER2016_2025$Date, "%m/%d/%Y")) # "2023-01-01" sets day to first day of month
+
+class(ER2016_2025_yearmonth_marsh$yearmonth_as_date)
+# factor
+
+ER2016_2025_yearmonth_marsh %>% #not wider version
+  filter(yearmonth_as_date != "2025-01-01") %>% # the year just started
+  ggplot(aes( x= as.Date(yearmonth_as_date), y = Freq, col = marsh )) +
+           geom_line()+
+           labs(x = "Time", y = "Number of ER visits", title = "Number of ER Visits by Month \n Marshallese and Non-Hispanic White Patients \n CHAS Maple and Market Clinics")+
+           theme_bw()
+
+
+# Pure numbers of ER visits for Marshallese per year
+ER2016_2025_year_marsh %>% filter(marsh == 1) %>% filter(year != 2025) %>%
   ggplot(aes(x= year, y= Freq, col = marsh, group = marsh ))+
   geom_line()+
-  labs(y = "Number of ER Visits", x = "Year", title = "Number of ER Visits by Group 2016-2025")
+  labs(y = "Number of ER Visits", x = "Year", title = "Number of ER Visits for Marshallese 2016-2024")
+# Note there is a change in 2019 that is flat then uptick again in 2021
 
+# Pure numbers of ER visits for Marshallese per year
+ER2016_2025_year_marsh %>% filter(marsh == 0) %>% filter(year != 2025) %>%
+  ggplot(aes(x= year, y= Freq, col = marsh, group = marsh ))+
+  geom_line()+
+  labs(y = "Number of ER Visits", x = "Year", title = "Number of ER Visits for Non-Hispanic White 2016-2024")
+# Note there is a change in 2019 that is flat then uptick again in 2021
+
+# ! I need to see if we have a good number of patients in the first 5 years as the 2nd five years
 # ! I think we had other patients before?
 
-#class(ER2016_2025_year_marsh$year)
-# ER2016_2025_yearmonth_marsh %>%
-#   ggplot(aes(x= as.Date(yearmonth), y= Freq, col = marsh, group = marsh ))+
-#   geom_line()+
-#   labs(y = "Number of ER Visits", x = "Year", title = "Number of ER Visits by Group \2016-2025")
 
-class(ER2016_2025_yearmonth_marsh$yearmonth)
+#############################################
 
-# create average number of ER visits per group. We need to divide each time periods number by the number of patients...
-n_controls <- nrow(Control)
-n_marsh <- nrow(Marshallese)
-
-
-ER2016_2025_year_marsh <- ER2016_2025_year_marsh %>% mutate(pop_size = if_else((marsh == 1), n_marsh,
-                                                                               if_else((marsh == 0),  n_controls, NA) ),
-                                  rate = Freq/pop_size)
-
-ER2016_2025_year_marsh %>%
-  ggplot(aes(x=year, y=rate, group=marsh, color=marsh))+
-  geom_line()+
-  #facet_wrap(~marsh)+
-  labs(y="Count", x="Time", title = "Emergency Visits Rates for CHAS Patients by Year
-       \n Marshallese and Non-Hispanic White Patients \n Maple and Market Clinics") #+
-  #scale_x_continuous(breaks=c(0,1,4,6))
-
-# !note that 2025 is only just beginning so numbers are low
-
-
-# ER2016_2025_year_marsh %>%
-#   ggplot(aes(x=year, y=Freq, group=marsh, color=marsh))+
-#   geom_line()+
-#   #facet_wrap(~marsh)+
-#   labs(y="Count", x="Time", title = "Emergency Visits for CHAS Patients by Year") #+
-#   #scale_x_continuous(breaks=c(0,1,4,6))
-#
-# ER2016_2025_yearmonth %>%
-#   ggplot(aes(x=as.Date(yearmonth), y=Freq, group=marsh, color=marsh))+
-#   geom_line()+
-#   #facet_wrap(~marsh)+
-#   labs(y="Count", x="Time", title = "Emergency Visits for CHAS Patients by Month") #+
-# #scale_x_continuous(breaks=c(0,1,4,6))
-#
-#
-# Compare Primary Care Trends with descriptive statistics
+# Compare Primary Care Trends 
 pcp_2016_2025 <- all_visit_types |> filter(ServiceLine == "Primary Care") #!  | ServiceLine == "Urgent Care"
 
 pcp_2016_2025 <- pcp_2016_2025 %>% mutate(year = lubridate::year(as.Date(pcp_2016_2025$Date, format = "%m/%d/%Y")) )
@@ -241,24 +208,6 @@ pcp_2016_2025_year_marsh <- as.data.frame( with(pcp_2016_2025, table(year, marsh
 pcp_2016_2025_yearmonth_marsh <-  as.data.frame( with(pcp_2016_2025, table(yearmonth, marsh)))
 
 
-# Visualize the Trends of these 2 groups over time
-# Spaghetti plot
-# tlc_long %>%
-#   ggplot(aes(x=time, y=lead, group=id, color=tx))+
-#   geom_line()+
-#   facet_wrap(~tx)+
-#   labs(y="Lead (mg/dL)", x="Time (Weeks)")+
-#   scale_x_continuous(breaks=c(0,1,4,6))
-
-# # create average number of ER visits per group. We need to divide each time periods number by the number of patients...
-# n_controls <- nrow(Control)
-# n_marsh <- nrow(Marshallese)
-#
-# mutate
-#
-# pcp_2016_2025_year_marsh <- pcp_2016_2025_year_marsh %>% mutate(pop_size = if_else((marsh == 1), n_marsh,
-#                                                                                if_else((marsh == 0),  n_controls, NA) ),
-#                                                             rate = Freq/pop_size)
 #
 pcp_2016_2025_year_marsh %>% filter(year != 2025) %>%
   ggplot(aes(x=year, y=Freq, group=marsh, color=marsh))+
@@ -281,29 +230,11 @@ pcp_2016_2025_year_marsh %>% filter(year != 2025) %>% # only one month into the 
 
 
 
-# !note that 2025 is only just beginning so numbers are low
-
-
-# pcp_2016_2025_year_marsh %>%
-#   ggplot(aes(x=year, y=Freq, group=marsh, color=marsh))+
-#   geom_line()+
-#   #facet_wrap(~marsh)+
-#   labs(y="Count", x="Time", title = "Emergency Visits for CHAS Patients by Year") #+
-#   #scale_x_continuous(breaks=c(0,1,4,6))
-#
-# pcp_2016_2025_yearmonth %>%
-#   ggplot(aes(x=as.Date(yearmonth), y=Freq, group=marsh, color=marsh))+
-#   geom_line()+
-#   #facet_wrap(~marsh)+
-#   labs(y="Count", x="Time", title = "Emergency Visits for CHAS Patients by Month") #+
-# #scale_x_continuous(breaks=c(0,1,4,6))
-#
-#
 
 
 
-
-
+######################
+# ! Move to top of script? 
 # create table for all visit types
 colnames(all_visit_types)
 
@@ -400,3 +331,17 @@ all_visit_types %>% filter(UniqueIdentifier %in% MarshalleseUniqueID ) %>% mutat
 #
 #
 #
+
+
+# ! Make a function for each type of visit
+# #  Urgent Care
+# Urgent2016_2025 <- all_visit_types |> filter( ServiceLine == "Urgent Care")
+# 
+# Urgent2016_2025_year <-  as.data.frame( with(Urgent2016_2025, table(year)))  # , useNA = "always"
+# #  Urgent Care
+# 
+# Urgent2016_2025 <- Urgent2016_2025 %>% mutate(marsh = if_else((UniqueIdentifier %in% MarshalleseUniqueID), 1,
+#                                                               if_else((UniqueIdentifier %in% ControlUniqueID), 0, NA) ) ) %>%
+#   filter(!is.na(marsh))
+# Urgent2016_2025_year_marsh <-  as.data.frame( with(Urgent2016_2025, table(year, marsh)))  # , useNA = "always"
+# 

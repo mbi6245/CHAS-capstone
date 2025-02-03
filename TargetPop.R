@@ -51,6 +51,7 @@ class(deceased$DeceasedDate)
 
 min(deceased$DeceasedDate)
 # "2022-06-03"
+# this is before the end of the DID analysis so I would remove it...
 max(deceased$DeceasedDate)
 # "2024-12-25"
 
