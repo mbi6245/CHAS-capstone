@@ -68,6 +68,7 @@ a1c.nona.18 <- a1c.nona.18 %>% filter(age >= 18)
 
 bmi.nona.18 <- left_join(bmi.nona, age, by = "UniqueIdentifier")
 bmi.nona.18 <- bmi.nona.18 %>% filter(age >= 18)
+bmi.nona.18 <- bmi.nona.18 %>% select(-age)
 
 bp.nona.18 <- left_join(bp.nona, age, by = "UniqueIdentifier")
 bp.nona.18 <- bp.nona.18 %>% filter(age >= 18)
@@ -167,6 +168,8 @@ koh.mtg1.bp <- right_join(koh.mtg1, koh.bp.elig, by="UniqueIdentifier") %>%
 koh.bp.pre <- koh.mtg1.bp %>% filter(datediff<=0) %>% group_by(UniqueIdentifier) %>% arrange(desc(datediff), .by_group=TRUE) %>% slice_head() %>% select(-(datediff)) %>%
   rename(KOH.start.dt = KOHDate, BPDate.pre = BPDate, sys.pre = Systolic, dia.pre = Diastolic)
 
+avg.bmi <- bmi.nona.18 %>% group_by(UniqueIdentifier) %>% mutate(avg.bmi = mean(BMI)) %>% slice_head() %>% select(c(UniqueIdentifier, avg.bmi))
+
 # now finding the most recent BP measure for "post" KOH
 koh.bp.post <- koh.mtg1.bp %>% filter(datediff>0) %>% group_by(UniqueIdentifier) %>% arrange(desc(datediff), .by_group=TRUE) %>% slice_head() %>% select(-(datediff)) %>%
   rename(KOH.start.dt = KOHDate, BPDate.post = BPDate, sys.post = Systolic, dia.post = Diastolic)
@@ -241,6 +244,7 @@ obj1.bp.pre.post <- obj1.bp.pre.post %>% mutate(KOH.none = ifelse(koh.counts == 
                                                 KOH.mult = ifelse(koh.counts > 1, 1, 0))
 obj1.bp.cov <- table1 %>% select(c(UniqueIdentifier, age, Sex, IncomeLevel, BLACERISK))
 obj1.bp.pre.post.full <- left_join(obj1.bp.pre.post, obj1.bp.cov, by="UniqueIdentifier")
+obj1.bp.pre.post.full <- left_join(obj1.bp.pre.post.full, avg.bmi, by="UniqueIdentifier")
 
 write.csv(obj1.bp.pre.post.full, 'Obj1BPPrePost.csv')
 ```
@@ -288,6 +292,7 @@ obj1.bp.lme <- obj1.bp.lme %>% mutate(KOH.none = ifelse(koh.counts == 0, 1, 0),
                                                 KOH.one = ifelse(koh.counts == 1, 1, 0),
                                                 KOH.mult = ifelse(koh.counts > 1, 1, 0))
 obj1.bp.lme.full <- left_join(obj1.bp.lme, obj1.bp.cov, by="UniqueIdentifier")
+obj1.bp.lme.full <- left_join(obj1.bp.lme.full, avg.bmi, by="UniqueIdentifier")
 
 write.csv(obj1.bp.lme.full, 'Obj1BP_LME.csv')
 ```
@@ -393,6 +398,7 @@ obj1.a1c.pre.post <- obj1.a1c.pre.post %>% mutate(KOH.none = ifelse(koh.counts =
                                                 KOH.one = ifelse(koh.counts == 1, 1, 0),
                                                 KOH.mult = ifelse(koh.counts > 1, 1, 0))
 obj1.a1c.pre.post.full <- left_join(obj1.a1c.pre.post, obj1.bp.cov, by="UniqueIdentifier")
+obj1.a1c.pre.post.full <- left_join(obj1.a1c.pre.post.full, avg.bmi, by="UniqueIdentifier")
 
 write.csv(obj1.a1c.pre.post.full, 'Obj1A1cPrePost.csv')
 ```
@@ -438,6 +444,7 @@ obj1.a1c.lme <- obj1.a1c.lme %>% mutate(KOH.none = ifelse(koh.counts == 0, 1, 0)
                                                 KOH.one = ifelse(koh.counts == 1, 1, 0),
                                                 KOH.mult = ifelse(koh.counts > 1, 1, 0))
 obj1.a1c.lme.full <- left_join(obj1.a1c.lme, obj1.bp.cov, by="UniqueIdentifier")
+obj1.a1c.lme.full <- left_join(obj1.a1c.lme.full, avg.bmi, by="UniqueIdentifier")
 
 write.csv(obj1.a1c.lme.full, 'Obj1A1c_LME.csv')
 ```
@@ -452,18 +459,21 @@ obj1 <- full_join(obj1.bp.pre.post, obj1.a1c.pre.post,
 obj1 <- left_join(obj1, table1, by = "UniqueIdentifier")
 obj1 <- obj1 %>% mutate(KOH.cat = case_when(KOH == 1 ~ 'KOH Participant',
                                             KOH == 0 ~ 'Non-Participant'))
+obj1 <- left_join(obj1, avg.bmi, by = "UniqueIdentifier")
+
 ```
 
 table 1 for primary objective population
 \pagebreak
 ```{r echo=FALSE, warning=FALSE}
-obj1 %>% select(c('KOH.cat','age','Sex.long','koh.counts','HTN','PreDM','T2DM','both','ClinicLocation','No.column.name','IncomeLevel','BLACERISK')) %>%
+obj1 %>% select(c('KOH.cat','age','Sex.long','avg.bmi','koh.counts','HTN','PreDM','T2DM','both','ClinicLocation','No.column.name','IncomeLevel','BLACERISK')) %>%
    gtsummary::tbl_summary(
      by = KOH.cat,
-     include = c(age, Sex.long, koh.counts, HTN, PreDM, T2DM, both, ClinicLocation, No.column.name, IncomeLevel, BLACERISK),
+     include = c(age, Sex.long, avg.bmi, koh.counts, HTN, PreDM, T2DM, both, ClinicLocation, No.column.name, IncomeLevel, BLACERISK),
      label = list(
        age ~ 'Age',
        Sex.long ~ 'Sex',
+       avg.bmi ~ 'BMI',
        koh.counts ~ 'KOH Meetings Attended',
        HTN ~ 'Hypertension',
        PreDM ~ 'Pre-Diabetes',
@@ -478,7 +488,8 @@ obj1 %>% select(c('KOH.cat','age','Sex.long','koh.counts','HTN','PreDM','T2DM','
      type = all_continuous() ~ "continuous",
      statistic = all_continuous() ~ c(
        "{median} ({min}, {max})"
-     )
+     ),
+     digits = all_continuous() ~ 1
    )  %>%
    bold_labels() %>%
    modify_footnote(c(all_stat_cols()) ~ NA) %>%
@@ -486,17 +497,23 @@ obj1 %>% select(c('KOH.cat','age','Sex.long','koh.counts','HTN','PreDM','T2DM','
   modify_header(all_stat_cols() ~ "**{level}**<br>\nN = {n}") %>%
    as_flex_table()
 ```
+```{r}
+high.bmi <- bmi.nona.18 %>% filter(UniqueIdentifier == '335835' | UniqueIdentifier == '463060' | UniqueIdentifier == '316975' | UniqueIdentifier == '49203')
+
+table1 <- left_join(table1, avg.bmi, by = "UniqueIdentifier")
+```
 
 
 table 1 for all Marshallese and non-Marshallese
 ```{r echo=FALSE, warning=FALSE}
-table1 %>% select(c('Group','age','Sex.long','HTN','PreDM','T2DM','both','ClinicLocation','No.column.name','IncomeLevel','BLACERISK')) %>%
+table1 %>% select(c('Group','age','Sex.long','avg.bmi','HTN','PreDM','T2DM','both','ClinicLocation','No.column.name','IncomeLevel','BLACERISK')) %>%
    gtsummary::tbl_summary(
      by = Group,
-     include=c(age, Sex.long, HTN, PreDM, T2DM, both, ClinicLocation, No.column.name, IncomeLevel, BLACERISK),
+     include=c(age, Sex.long, avg.bmi, HTN, PreDM, T2DM, both, ClinicLocation, No.column.name, IncomeLevel, BLACERISK),
      list(
        age ~ 'Age',
        Sex.long ~ 'Sex',
+       avg.bmi ~ 'BMI',
        HTN ~ 'Hypertension',
        PreDM ~ 'Pre-Diabetes',
        T2DM ~ 'Type II Diabetes',
@@ -510,7 +527,8 @@ table1 %>% select(c('Group','age','Sex.long','HTN','PreDM','T2DM','both','Clinic
      type = all_continuous() ~ "continuous2",
      statistic = all_continuous() ~ c(
        "{median} ({min}, {max})"
-     )
+     ),
+     digits = all_continuous() ~ 1
    ) %>%
    bold_labels() %>%
    modify_footnote(c(all_stat_cols()) ~ NA) %>%
