@@ -8,12 +8,14 @@ setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 fp_gdp = file.path(getwd(), "general_data_prep.R")
 source(fp_gdp)
 
-first_koh_date = ymd("2023-04-05")
+first_koh_date = as.Date("2023-04-05")
 
 ##################################
 # HYPERTENSION DATASET PREPARATION
 ##################################
 
+# grab covariates from table 1 dataset
+obj2.cov <- table1 %>% select(c(UniqueIdentifier, Marsh, Group, age, Sex, IncomeLevel, BLACERISK, avg.bmi))
 # subset of Marshallese and NHW patient ids w/hypertension
 htn_ids = table1 %>%
   filter(HTN == 1 & (Marsh == 1 | Race == "White")) %>%
@@ -46,13 +48,22 @@ pre_post_ptids = intersect(pre_htn_read_ids, post_htn_read_ids)
 htn_reads_LME = all_htn_reads %>% 
   filter(UniqueIdentifier %in% pre_post_ptids)
 
-write.csv(htn_reads_LME, "Analysis Data/Obj2BP_LME.csv")
+htn_reads_LME$KOHDate <- first_koh_date
+htn_reads_LME.pre <- htn_reads_LME %>%
+  mutate(datediff = as.numeric(difftime(Date, KOHDate, units="days"))) %>% 
+  filter(datediff<=0) %>% group_by(UniqueIdentifier) %>% arrange(desc(datediff), .by_group=TRUE) %>% slice_head() %>% select(-c(datediff, KOHDate))
+htn_reads_LME.post <- htn_reads_LME %>%
+  mutate(datediff = as.numeric(difftime(Date, KOHDate, units="days"))) %>% filter(datediff>0) %>% select(-c(datediff, KOHDate))
+htn_LME_final <- rbind(htn_reads_LME.pre, htn_reads_LME.post) %>% group_by(UniqueIdentifier) %>% arrange(Date, .by_group=TRUE)
+htn_LME_final <- left_join(htn_LME_final, obj2.cov, by = "UniqueIdentifier")
+
+write.csv(htn_LME_final, "Analysis Data/Obj2BP_LME.csv") 
 
 # drop all measurements not taken at earliest and most recent dates
-htn_reads_pp = htn_reads_LME %>% 
-  group_by(UniqueIdentifier) %>% 
-  filter(Date == min(Date) | Date == max(Date)) %>% 
-  ungroup()
+htn_reads_pp.post = htn_LME_final %>% select(c(UniqueIdentifier, Date, Systolic, Diastolic)) %>% 
+  group_by(UniqueIdentifier) %>% filter(Date == max(Date)) %>% ungroup()
+htn_reads_pp <- rbind(htn_reads_LME.pre, htn_reads_pp.post) %>% group_by(UniqueIdentifier) %>% arrange(Date, .by_group=TRUE)
+htn_reads_pp <- left_join(htn_reads_pp, obj2.cov, by = "UniqueIdentifier")
 
 write.csv(htn_reads_pp, "Analysis Data/Obj2BPPrePost.csv")
 
@@ -60,16 +71,16 @@ write.csv(htn_reads_pp, "Analysis Data/Obj2BPPrePost.csv")
 # T2DM DATASET PREPARATION
 ##########################
 
-# subset of Marshallese and NHW patient ids w/hypertension
+# subset of Marshallese and NHW patient ids w/t2dm
 a1c_ids = table1 %>%
   filter(Diabetes == 1 & (Marsh == 1 | Race == "White")) %>%
   select("UniqueIdentifier")
 
-# htn ptids and all BP readings/associated dates ONLY no other vars
+# t2dm ptids and all A1c readings/associated dates ONLY no other vars
 all_a1c_reads = left_join(a1c_ids, a1c.nona.18, by="UniqueIdentifier") %>%
   select(-age)
 
-# set of htn ptids with readings before first KOH meeting
+# set of t2dm ptids with readings before first KOH meeting
 pre_a1c_read_ids = all_a1c_reads %>%
   filter(Date <= first_koh_date)
 
@@ -77,7 +88,7 @@ pre_a1c_read_ids = pre_a1c_read_ids$UniqueIdentifier %>%
   as.array() %>% 
   unique()
 
-# set of htn ptids with readings after first KOH meeting
+# set of diab ptids with readings after first KOH meeting
 post_a1c_read_ids = all_a1c_reads %>% 
   filter(Date > first_koh_date)
 
@@ -92,12 +103,21 @@ pre_post_ptids = intersect(pre_a1c_read_ids, post_a1c_read_ids)
 a1c_reads_LME = all_a1c_reads %>% 
   filter(UniqueIdentifier %in% pre_post_ptids)
 
-write.csv(a1c_reads_LME, "Analysis Data/Obj2A1c_LME.csv")
+a1c_reads_LME$KOHDate <- first_koh_date
+a1c_reads_LME.pre <- a1c_reads_LME %>%
+  mutate(datediff = as.numeric(difftime(Date, KOHDate, units="days"))) %>% 
+  filter(datediff<=0) %>% group_by(UniqueIdentifier) %>% arrange(desc(datediff), .by_group=TRUE) %>% slice_head() %>% select(-c(datediff, KOHDate))
+a1c_reads_LME.post <- a1c_reads_LME %>%
+  mutate(datediff = as.numeric(difftime(Date, KOHDate, units="days"))) %>% filter(datediff>0) %>% select(-c(datediff, KOHDate))
+a1c_LME_final <- rbind(a1c_reads_LME.pre, a1c_reads_LME.post) %>% group_by(UniqueIdentifier) %>% arrange(Date, .by_group=TRUE)
+a1c_LME_final <- left_join(a1c_LME_final, obj2.cov, by = "UniqueIdentifier")
+
+write.csv(a1c_LME_final, "Analysis Data/Obj2A1c_LME.csv")
 
 # drop all measurements not taken at earliest and most recent dates
-a1c_reads_pp = a1c_reads_LME %>% 
-  group_by(UniqueIdentifier) %>% 
-  filter(Date == min(Date) | Date == max(Date)) %>% 
-  ungroup()
+a1c_reads_pp.post = a1c_LME_final %>% select(c(UniqueIdentifier, Date, A1c)) %>% 
+  group_by(UniqueIdentifier) %>% filter(Date == max(Date)) %>% ungroup()
+a1c_reads_pp <- rbind(a1c_reads_LME.pre, a1c_reads_pp.post) %>% group_by(UniqueIdentifier) %>% arrange(Date, .by_group=TRUE)
+a1c_reads_pp <- left_join(a1c_reads_pp, obj2.cov, by = "UniqueIdentifier")
 
 write.csv(a1c_reads_pp, "Analysis Data/Obj2A1cPrePost.csv")

@@ -497,6 +497,7 @@ obj1 %>% select(c('KOH.cat','age','Sex.long','avg.bmi','koh.counts','HTN','PreDM
   modify_header(all_stat_cols() ~ "**{level}**<br>\nN = {n}") %>%
    as_flex_table()
 ```
+
 ```{r}
 high.bmi <- bmi.nona.18 %>% filter(UniqueIdentifier == '335835' | UniqueIdentifier == '463060' | UniqueIdentifier == '316975' | UniqueIdentifier == '49203')
 
