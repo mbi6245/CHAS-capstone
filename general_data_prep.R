@@ -26,20 +26,20 @@ diag$PreDM[diag$PreDM == 1 & diag$T2DM == 1] <- 0
 
 # change date variable to date type and remove NA values in necessary fields
 a1c$Date <- mdy(a1c$Date)
-a1c.nona <- a1c %>% filter(!is.na(A1c) & !is.na(Date))
+a1c.nona <- a1c %>% filter(!is.na(A1c) & !is.na(Date)) %>% distinct()
 
 bmi$Date <- mdy(bmi$Date)
-bmi.nona <- bmi %>% filter(!is.na(Date) & !is.na(BMI))
+bmi.nona <- bmi %>% filter(!is.na(Date) & !is.na(BMI)) %>% distinct()
 
 bp$Date <- mdy(bp$Date)
-bp.nona <- bp %>% filter(!is.na(Date) & !is.na(Systolic))
+bp.nona <- bp %>% filter(!is.na(Date) & !is.na(Systolic)) %>% distinct()
 
 enc <- bind_rows(enc, enc.extra)
 enc$Date <- mdy(enc$Date)
 enc.nona <- enc %>% filter(!is.na(Date) & !is.na(ServiceLine))
 
 koh.attend$Date <- mdy(koh.attend$dateAttended)
-koh.attend <- koh.attend %>% filter(!is.na(Date))
+koh.attend <- koh.attend %>% filter(!is.na(Date)) %>% distinct()
 koh.counts <- koh.attend %>% group_by(UniqueIdentifier) %>% count(name = "koh.counts")
 
 diag.nona <- diag %>% filter(!is.na(HTN) & !is.na(PreDM) & !is.na(T2DM))
