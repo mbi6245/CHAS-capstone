@@ -463,18 +463,21 @@ obj1 <- left_join(obj1, avg.bmi, by = "UniqueIdentifier")
 
 ```
 
+```{r}
+obj1 <- read.csv('Analysis Data/Obj1_AllPts.csv')[,-1]
+```
+
 table 1 for primary objective population
 \pagebreak
 ```{r echo=FALSE, warning=FALSE}
-obj1 %>% select(c('KOH.cat','age','Sex.long','avg.bmi','koh.counts','HTN','PreDM','T2DM','both','ClinicLocation','No.column.name','IncomeLevel','BLACERISK')) %>%
+obj1 %>% select(c('KOH.cat','age','Sex.long','avg.bmi','HTN','PreDM','T2DM','both','ClinicLocation','No.column.name','IncomeLevel','BLACERISK')) %>%
    gtsummary::tbl_summary(
      by = KOH.cat,
-     include = c(age, Sex.long, avg.bmi, koh.counts, HTN, PreDM, T2DM, both, ClinicLocation, No.column.name, IncomeLevel, BLACERISK),
+     include = c(age, Sex.long, avg.bmi, HTN, PreDM, T2DM, both, ClinicLocation, No.column.name, IncomeLevel, BLACERISK),
      label = list(
        age ~ 'Age',
        Sex.long ~ 'Sex',
        avg.bmi ~ 'BMI',
-       koh.counts ~ 'KOH Meetings Attended',
        HTN ~ 'Hypertension',
        PreDM ~ 'Pre-Diabetes',
        T2DM ~ 'Type II Diabetes',
@@ -491,23 +494,28 @@ obj1 %>% select(c('KOH.cat','age','Sex.long','avg.bmi','koh.counts','HTN','PreDM
      ),
      digits = all_continuous() ~ 1
    )  %>%
-   bold_labels() %>%
-   modify_footnote(c(all_stat_cols()) ~ NA) %>%
+  bold_labels() %>%
+  modify_table_styling(
+    columns = label,
+    rows = label == "Income Level",
+    footnote = "Percentage of participant's annual income relative to the federal poverty line"
+  ) %>%
+  modify_table_styling(
+    columns = label,
+    rows = label == "Risk Score",
+    footnote = "Need to add definition of risk score here"
+  ) %>%
    modify_header(label ~ "**Baseline Characteristics**") %>%
   modify_header(all_stat_cols() ~ "**{level}**<br>\nN = {n}") %>%
+  modify_caption("Marshallese Participant Characteristics") %>%
    as_flex_table()
-```
-
-```{r}
-high.bmi <- bmi.nona.18 %>% filter(UniqueIdentifier == '335835' | UniqueIdentifier == '463060' | UniqueIdentifier == '316975' | UniqueIdentifier == '49203')
-
-table1 <- left_join(table1, avg.bmi, by = "UniqueIdentifier")
 ```
 
 
 table 1 for all Marshallese and non-Marshallese
 ```{r echo=FALSE, warning=FALSE}
-table1 %>% select(c('Group','age','Sex.long','avg.bmi','HTN','PreDM','T2DM','both','ClinicLocation','No.column.name','IncomeLevel','BLACERISK')) %>%
+obj2 <- read.csv('Analysis Data/Obj2_AllPts.csv')[,-1]
+obj2 %>% select(c('Group','age','Sex.long','avg.bmi','HTN','PreDM','T2DM','both','ClinicLocation','No.column.name','IncomeLevel','BLACERISK')) %>%
    gtsummary::tbl_summary(
      by = Group,
      include=c(age, Sex.long, avg.bmi, HTN, PreDM, T2DM, both, ClinicLocation, No.column.name, IncomeLevel, BLACERISK),
@@ -525,16 +533,26 @@ table1 %>% select(c('Group','age','Sex.long','avg.bmi','HTN','PreDM','T2DM','bot
        BLACERISK ~ 'Risk Score'
      ),
      missing_text = "Missing",
-     type = all_continuous() ~ "continuous2",
+     type = all_continuous() ~ "continuous",
      statistic = all_continuous() ~ c(
        "{median} ({min}, {max})"
      ),
      digits = all_continuous() ~ 1
    ) %>%
    bold_labels() %>%
-   modify_footnote(c(all_stat_cols()) ~ NA) %>%
+  modify_table_styling(
+    columns = label,
+    rows = label == "Income Level",
+    footnote = "Percentage of participant's annual income relative to the federal poverty line"
+  ) %>%
+  modify_table_styling(
+    columns = label,
+    rows = label == "Risk Score",
+    footnote = "Need to add definition of risk score here"
+  ) %>%
    modify_header(label ~ "**Baseline Characteristics**") %>%
    modify_header(all_stat_cols() ~ "**{level}**<br>\nN = {n}") %>%
+  modify_caption("Marshallese and Non-Hispanic White Participant Characteristics") %>%
    add_overall() %>%
    as_flex_table()
 ```
