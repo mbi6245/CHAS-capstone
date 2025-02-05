@@ -127,17 +127,10 @@ a1c_reads_pp <- left_join(a1c_reads_pp, obj2.cov, by = "UniqueIdentifier")
 
 write.csv(a1c_reads_pp, "Analysis Data/Obj2A1cPrePost.csv")
 
-
 # combine datasets to get patients for table 1
 obj2 <- rbind(a1c_reads_pp, htn_reads_pp) %>% distinct(UniqueIdentifier)
 obj2 <- left_join(obj2, table1, by = "UniqueIdentifier")
 write.csv(obj2, "Analysis Data/Obj2_AllPts.csv")
-
-# find patients with extreme BMI
-obj2.bmi.reads <- left_join(obj2, bmi.nona.18, by = "UniqueIdentifier") %>% select(c("UniqueIdentifier","BMI","Date"))
-extreme.bmi.pts <- obj2.bmi.reads %>% filter(BMI>=250) %>% select("UniqueIdentifier")
-extreme.bmi <- left_join(extreme.bmi.pts, bmi.nona.18, by = "UniqueIdentifier")
-write.csv(extreme.bmi, "Obj2_extremeBMI.csv")
 
 no.bmi <- obj2 %>% filter(is.na(avg.bmi))
 write.csv(no.bmi, "Obj2_noBMI.csv")

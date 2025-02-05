@@ -29,7 +29,8 @@ a1c$Date <- mdy(a1c$Date)
 a1c.nona <- a1c %>% filter(!is.na(A1c) & !is.na(Date)) %>% distinct()
 
 bmi$Date <- mdy(bmi$Date)
-bmi.nona <- bmi %>% filter(!is.na(Date) & !is.na(BMI)) %>% distinct()
+bmi.nona <- bmi %>% filter(!is.na(Date) & !is.na(BMI)) %>% distinct() %>% filter(BMI<=250)
+
 
 bp$Date <- mdy(bp$Date)
 bp.nona <- bp %>% filter(!is.na(Date) & !is.na(Systolic)) %>% distinct()
