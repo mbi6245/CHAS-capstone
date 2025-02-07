@@ -29,6 +29,7 @@ bp <- bp %>% mutate(koh.cat = case_when(KOH.none == 1 ~ 'None',
                                         KOH.one == 1 ~ 'One',
                                         KOH.mult == 1 ~ 'Multiple'))
 bp$koh.cat <- factor(bp$koh.cat, levels=c("None","One","Multiple"))
+bp$male <- ifelse(bp$Sex == 'M', 1, 0)
 
 ggplot(data= bp, 
        aes(x=time.std, y=Systolic, group=UniqueIdentifier, colour=koh.cat))+
@@ -47,23 +48,15 @@ ggplot(data=summary_bp,
 
 ```{r}
 bp.mod1 <- lme(
-  fixed = Systolic ~ time.std * koh.cat,
-  random = ~ time.std | UniqueIdentifier,
+  fixed = Systolic ~ time.std * koh.cat + age + male + IncomeLevel + BLACERISK + avg.bmi,
+  random = reStruct(~ time.std | UniqueIdentifier, pdClass="pdSymm"),
   data = bp,
   method = "REML"
 )
 summary(bp.mod1)
-
-bp.mod2 <- lme(
-  fixed = Systolic ~ time.std * (KOH.one + KOH.mult),
-  random = ~ time.std | UniqueIdentifier,
-  data = bp,
-  method = "REML"
-)
-summary(bp.mod2)
 ```
 ```{r}
-summary(bp.mod2)
+
 ```
 
 Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
