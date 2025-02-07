@@ -4,6 +4,7 @@ library(gtsummary)
 library(lubridate)
 library(naniar)
 library(flextable)
+library(missRanger)
 setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 fp_gdp = file.path(getwd(), "general_data_prep.R")
 source(fp_gdp)
@@ -106,9 +107,6 @@ obj1.bp.pre.post <- obj1.bp.pre.post %>% mutate(KOH.none = ifelse(koh.counts == 
                                                 KOH.mult = ifelse(koh.counts > 1, 1, 0))
 obj1.bp.cov <- table1 %>% select(c(UniqueIdentifier, age, Sex, IncomeLevel, BLACERISK, avg.bmi))
 obj1.bp.pre.post.full <- left_join(obj1.bp.pre.post, obj1.bp.cov, by="UniqueIdentifier")
-length(unique(obj1.bp.pre.post.full$UniqueIdentifier))
-
-write.csv(obj1.bp.pre.post.full, 'Analysis Data/Obj1BPPrePost.csv')
 
 # these are all the "pre" KOH BP measurements
 koh.bp.pre.all <- koh.mtg1.bp %>% filter(datediff<=0) %>% group_by(UniqueIdentifier) %>% arrange(desc(datediff), .by_group=TRUE) %>% slice_head() %>% select(-(datediff)) %>%
@@ -147,8 +145,6 @@ obj1.bp.lme <- obj1.bp.lme %>% mutate(KOH.none = ifelse(koh.counts == 0, 1, 0),
                                       KOH.one = ifelse(koh.counts == 1, 1, 0),
                                       KOH.mult = ifelse(koh.counts > 1, 1, 0))
 obj1.bp.lme.full <- left_join(obj1.bp.lme, obj1.bp.cov, by="UniqueIdentifier")
-
-write.csv(obj1.bp.lme.full, 'Analysis Data/Obj1BP_LME.csv')
 
 # get pts with diabetes
 koh.t2dm <- koh.table1 %>% filter(Diabetes == 1)
@@ -245,8 +241,6 @@ obj1.a1c.pre.post <- obj1.a1c.pre.post %>% mutate(KOH.none = ifelse(koh.counts =
                                                   KOH.one = ifelse(koh.counts == 1, 1, 0),
                                                   KOH.mult = ifelse(koh.counts > 1, 1, 0))
 obj1.a1c.pre.post.full <- left_join(obj1.a1c.pre.post, obj1.bp.cov, by="UniqueIdentifier")
-length(unique(obj1.a1c.pre.post.full$UniqueIdentifier))
-write.csv(obj1.a1c.pre.post.full, 'Analysis Data/Obj1A1cPrePost.csv')
 
 # these are all the "pre" KOH A1c measurements
 koh.a1c.pre.all <- koh.mtg1.a1c %>% filter(datediff<=0) %>% group_by(UniqueIdentifier) %>% arrange(desc(datediff), .by_group=TRUE) %>% slice_head() %>% select(-(datediff)) %>%
@@ -290,8 +284,6 @@ a1c.dups <- left_join(a1c.dt.dups, obj1.a1c.lme, by = c("UniqueIdentifier", "A1c
   select(c("UniqueIdentifier","A1cDate", "A1c")) %>% rename(Date = A1cDate)
 write.csv(a1c.dups, "obj1.a1c.duplicates.csv")
 
-write.csv(obj1.a1c.lme.full, 'Analysis Data/Obj1A1c_LME.csv')
-
 # make table 1 dataset for primary objective 249 unique patients 127 from bp and 221 from a1c
 # combine eligible bp and a1c patients and get table 1 covariates
 obj1 <- full_join(obj1.bp.pre.post, obj1.a1c.pre.post, 
@@ -300,6 +292,7 @@ obj1 <- full_join(obj1.bp.pre.post, obj1.a1c.pre.post,
 obj1 <- left_join(obj1, table1, by = "UniqueIdentifier")
 obj1 <- obj1 %>% mutate(KOH.cat = case_when(KOH == 1 ~ 'KOH Participant',
                                             KOH == 0 ~ 'Non-Participant'))
+obj1$death <- ifelse(is.na(obj1$DeceasedDate), 0, 1)
 
 # this is the full dataset for table 1 for primary objective analysis population
 write.csv(obj1, 'Analysis Data/Obj1_AllPts.csv')
@@ -309,3 +302,31 @@ obj1.bmi.reads <- left_join(obj1, bmi.nona.18, by = "UniqueIdentifier") %>% sele
 
 no.bmi <- obj1 %>% filter(is.na(avg.bmi))
 write.csv(no.bmi, "Obj1_noBMI.csv")
+
+
+# multiple imputation for risk scores
+
+obj1.impute <- obj1 %>% select(c(UniqueIdentifier, KOH, koh.counts, HTN, PreDM, T2DM, Diabetes, both, age, Ethnicity, Race, Sex, 
+                                 Language, No.column.name, IncomeLevel, BLACERISK, avg.bmi, death))
+
+set.seed(1)
+obj1.mult.imput <- missRanger(obj1.impute, . ~ .-UniqueIdentifier, pmm.k=3, num.trees=100, verbose=F)
+obj1.mult.imput.var <- obj1.mult.imput %>% select(c(UniqueIdentifier, IncomeLevel, BLACERISK, avg.bmi))
+
+
+# add the imputed data to the datasets
+obj1.bp.pre.post.full <- obj1.bp.pre.post.full %>% select(-c(IncomeLevel, BLACERISK, avg.bmi))
+obj1.bp.pre.post.imput <- left_join(obj1.bp.pre.post.full, obj1.mult.imput.var, by="UniqueIdentifier")
+write.csv(obj1.bp.pre.post.imput, 'Analysis Data/Obj1BPPrePost.csv')
+
+obj1.bp.lme.full <- obj1.bp.lme.full %>% select(-c(IncomeLevel, BLACERISK, avg.bmi))
+obj1.bp.lme.imput <- left_join(obj1.bp.lme.full, obj1.mult.imput.var, by="UniqueIdentifier")
+write.csv(obj1.bp.lme.imput, 'Analysis Data/Obj1BP_LME.csv')
+
+obj1.a1c.pre.post.full <- obj1.a1c.pre.post.full %>% select(-c(IncomeLevel, BLACERISK, avg.bmi))
+obj1.a1c.pre.post.imput <- left_join(obj1.a1c.pre.post.full, obj1.mult.imput.var, by="UniqueIdentifier")
+write.csv(obj1.a1c.pre.post.imput, 'Analysis Data/Obj1A1cPrePost.csv')
+
+obj1.a1c.lme.full <- obj1.a1c.lme.full %>% select(-c(IncomeLevel, BLACERISK, avg.bmi))
+obj1.a1c.lme.imput <- left_join(obj1.a1c.lme.full, obj1.mult.imput.var, by="UniqueIdentifier")
+write.csv(obj1.a1c.lme.imput, 'Analysis Data/Obj1A1c_LME.csv')
