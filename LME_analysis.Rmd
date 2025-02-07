@@ -49,12 +49,65 @@ ggplot(data=summary_bp,
 ```{r}
 bp.mod1 <- lme(
   fixed = Systolic ~ time.std * koh.cat + age + male + IncomeLevel + BLACERISK + avg.bmi,
-  random = reStruct(~ time.std | UniqueIdentifier, pdClass="pdSymm"),
+  random = ~ time.std | UniqueIdentifier,
   data = bp,
   method = "REML"
 )
 summary(bp.mod1)
 ```
+```{r}
+a1c <- read.csv('Analysis Data/Obj1A1c_LME.csv')[,-1]
+```
+
+```{r cars}
+# standardizing time as days from baseline measurement
+a1c.first <- a1c %>% group_by(UniqueIdentifier) %>% arrange(A1cDate, .by_group=TRUE) %>% slice_head() %>% 
+  mutate(baseline.lag = round(as.numeric(difftime(KOH.start.dt, A1cDate, units="days")))) %>% select(c(UniqueIdentifier, baseline.lag))
+
+a1c <- left_join(a1c, a1c.first, by="UniqueIdentifier")
+a1c <- a1c %>% mutate(time.from.koh1 = round(as.numeric(difftime(A1cDate, KOH.start.dt, units="days"))))
+a1c$time.std <- a1c$time.from.koh1 + a1c$baseline.lag
+a1c <- a1c %>% mutate(koh.cat = case_when(KOH.none == 1 ~ 'None',
+                                        KOH.one == 1 ~ 'One',
+                                        KOH.mult == 1 ~ 'Multiple'))
+a1c$koh.cat <- factor(a1c$koh.cat, levels=c("None","One","Multiple"))
+a1c$male <- ifelse(a1c$Sex == 'M', 1, 0)
+
+a1c %>% filter(koh.cat == 'Multiple') %>%
+  ggplot(aes(x=time.std, y=A1c, group=UniqueIdentifier))+
+  geom_line() +
+  xlab("Time (days)") + ylab("A1c") + theme_bw()
+
+ggplot(data= a1c, 
+       aes(x=time.std, y=A1c, group=UniqueIdentifier, colour=koh.cat))+
+  geom_line() +
+  xlab("Time (days)") + ylab("A1c") + theme_bw() + xlim(0, 1100)
+
+summary_a1c <- a1c %>% group_by(koh.cat, time.std) %>%
+  summarise(mean_a1c = mean(A1c))
+
+ggplot(data=summary_a1c, 
+       aes(x=time.std, y=mean_a1c, group=koh.cat, colour=koh.cat))+
+  geom_line() +
+  xlab("Time (days)") + ylab("A1c") + theme_bw() + xlim(0, 1100)
+
+```
+
+
+```{r}
+a1c.mod1 <- lme(
+  fixed = A1c ~ time.std * koh.cat + age + male + IncomeLevel + BLACERISK + avg.bmi,
+  random = ~ time.std | UniqueIdentifier,
+  data = a1c,
+  method = "REML"
+)
+summary(bp.mod1)
+```
+
+
+
+
+
 ```{r}
 
 ```
