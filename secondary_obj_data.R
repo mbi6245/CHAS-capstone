@@ -111,19 +111,18 @@ a1c_reads_LME.post <- a1c_reads_LME %>%
   mutate(datediff = as.numeric(difftime(Date, KOHDate, units="days"))) %>% filter(datediff>0) %>% select(-c(datediff, KOHDate))
 a1c_LME_final <- rbind(a1c_reads_LME.pre, a1c_reads_LME.post) %>% group_by(UniqueIdentifier) %>% arrange(Date, .by_group=TRUE)
 a1c_LME_final <- left_join(a1c_LME_final, obj2.cov, by = "UniqueIdentifier")
+a1c_LME_final <- a1c_LME_final %>% group_by(UniqueIdentifier, Date) %>% mutate(avg.a1c = mean(A1c)) %>% 
+  slice_head() %>% mutate(A1c = avg.a1c) %>% select(-avg.a1c)
 
-# find duplicate values
-a1c.dt.dups <- a1c_LME_final %>% group_by(UniqueIdentifier, Date) %>% count(name="counts") %>% filter(counts>1)
-a1c.dups <- left_join(a1c.dt.dups, a1c_LME_final, by = c("UniqueIdentifier", "Date")) %>% select(-counts)
-write.csv(a1c.dups, "obj2.a1c.duplicates.csv")
-
-write.csv(a1c_LME_final, "Analysis Data/Obj2A1c_LME.csv")
+write.csv(a1c_LME_final, "Analysis Data/Obj2A1c_LME.csv") 
 
 # drop all measurements not taken at earliest and most recent dates
 a1c_reads_pp.post = a1c_LME_final %>% select(c(UniqueIdentifier, Date, A1c)) %>% 
   group_by(UniqueIdentifier) %>% filter(Date == max(Date)) %>% ungroup()
 a1c_reads_pp <- rbind(a1c_reads_LME.pre, a1c_reads_pp.post) %>% group_by(UniqueIdentifier) %>% arrange(Date, .by_group=TRUE)
 a1c_reads_pp <- left_join(a1c_reads_pp, obj2.cov, by = "UniqueIdentifier")
+a1c_reads_pp <- a1c_reads_pp %>% group_by(UniqueIdentifier, Date) %>% mutate(avg.a1c = mean(A1c)) %>% 
+  slice_head() %>% mutate(A1c = avg.a1c) %>% select(-avg.a1c)
 
 write.csv(a1c_reads_pp, "Analysis Data/Obj2A1cPrePost.csv")
 

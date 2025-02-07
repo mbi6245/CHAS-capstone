@@ -241,6 +241,8 @@ obj1.a1c.pre.post <- obj1.a1c.pre.post %>% mutate(KOH.none = ifelse(koh.counts =
                                                   KOH.one = ifelse(koh.counts == 1, 1, 0),
                                                   KOH.mult = ifelse(koh.counts > 1, 1, 0))
 obj1.a1c.pre.post.full <- left_join(obj1.a1c.pre.post, obj1.bp.cov, by="UniqueIdentifier")
+obj1.a1c.pre.post.full <- obj1.a1c.pre.post.full %>% group_by(UniqueIdentifier, A1cDate) %>% mutate(avg.a1c = mean(A1c)) %>% 
+  slice_head() %>% mutate(A1c = avg.a1c) %>% select(-avg.a1c)
 
 # these are all the "pre" KOH A1c measurements
 koh.a1c.pre.all <- koh.mtg1.a1c %>% filter(datediff<=0) %>% group_by(UniqueIdentifier) %>% arrange(desc(datediff), .by_group=TRUE) %>% slice_head() %>% select(-(datediff)) %>%
@@ -278,11 +280,8 @@ obj1.a1c.lme <- obj1.a1c.lme %>% mutate(KOH.none = ifelse(koh.counts == 0, 1, 0)
                                         KOH.one = ifelse(koh.counts == 1, 1, 0),
                                         KOH.mult = ifelse(koh.counts > 1, 1, 0))
 obj1.a1c.lme.full <- left_join(obj1.a1c.lme, obj1.bp.cov, by="UniqueIdentifier")
-
-a1c.dt.dups <- obj1.a1c.lme %>% group_by(UniqueIdentifier, A1cDate) %>% count(name="counts") %>% filter(counts>1)
-a1c.dups <- left_join(a1c.dt.dups, obj1.a1c.lme, by = c("UniqueIdentifier", "A1cDate")) %>% 
-  select(c("UniqueIdentifier","A1cDate", "A1c")) %>% rename(Date = A1cDate)
-write.csv(a1c.dups, "obj1.a1c.duplicates.csv")
+obj1.a1c.lme.full <- obj1.a1c.lme.full %>% group_by(UniqueIdentifier, A1cDate) %>% mutate(avg.a1c = mean(A1c)) %>% 
+  slice_head() %>% mutate(A1c = avg.a1c) %>% select(-avg.a1c)
 
 # make table 1 dataset for primary objective 249 unique patients 127 from bp and 221 from a1c
 # combine eligible bp and a1c patients and get table 1 covariates
