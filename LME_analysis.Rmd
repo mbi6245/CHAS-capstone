@@ -1,0 +1,69 @@
+---
+title: "Objective 1 Longitudinal Analysis"
+author: "Gabby Lopez"
+date: "`r Sys.Date()`"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(tidyverse)
+library(ggplot2)
+library(nlme)
+```
+
+```{r}
+bp <- read.csv('Analysis Data/Obj1BP_LME.csv')[,-1]
+```
+
+```{r cars}
+# standardizing time as days from baseline measurement
+bp.first <- bp %>% group_by(UniqueIdentifier) %>% arrange(BPDate, .by_group=TRUE) %>% slice_head() %>% 
+  mutate(baseline.lag = round(as.numeric(difftime(KOH.start.dt, BPDate, units="days")))) %>% select(c(UniqueIdentifier, baseline.lag))
+
+bp <- left_join(bp, bp.first, by="UniqueIdentifier")
+bp <- bp %>% mutate(time.from.koh1 = round(as.numeric(difftime(BPDate, KOH.start.dt, units="days"))))
+bp$time.std <- bp$time.from.koh1 + bp$baseline.lag
+bp <- bp %>% mutate(koh.cat = case_when(KOH.none == 1 ~ 'None',
+                                        KOH.one == 1 ~ 'One',
+                                        KOH.mult == 1 ~ 'Multiple'))
+bp$koh.cat <- factor(bp$koh.cat, levels=c("None","One","Multiple"))
+
+ggplot(data= bp, 
+       aes(x=time.std, y=Systolic, group=UniqueIdentifier, colour=koh.cat))+
+  geom_line() +
+  xlab("Time (days)") + ylab("Systolic Blood Pressure (mmHg)") + theme_bw()
+
+summary_bp <- bp %>% group_by(koh.cat, time.std) %>%
+  summarise(mean_bp = mean(Systolic))
+
+ggplot(data=summary_bp, 
+       aes(x=time.std, y=mean_bp, group=koh.cat, colour=koh.cat))+
+  geom_line() +
+  xlab("Time (days)") + ylab("Systolic Blood Pressure (mmHg)") + theme_bw()
+```
+
+
+```{r}
+bp.mod1 <- lme(
+  fixed = Systolic ~ time.std * koh.cat,
+  random = ~ time.std | UniqueIdentifier,
+  data = bp,
+  method = "REML"
+)
+summary(bp.mod1)
+
+bp.mod2 <- lme(
+  fixed = Systolic ~ time.std * (KOH.one + KOH.mult),
+  random = ~ time.std | UniqueIdentifier,
+  data = bp,
+  method = "REML"
+)
+summary(bp.mod2)
+```
+```{r}
+summary(bp.mod2)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
