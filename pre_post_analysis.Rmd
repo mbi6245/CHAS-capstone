@@ -1,0 +1,53 @@
+---
+title: "Pre Post Analysis"
+author: "Max Bi"
+date: "`r Sys.Date()`"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(nlme)
+# source("secondary_obj_data.R")
+```
+
+```{r}
+o2_bp = read_csv("Analysis Data/Obj2BPPrePost.csv")
+names(o2_bp)[1] = "row_id"
+o2_a1c = read_csv("Analysis Data/Obj2A1cPrePost.csv")
+names(o2_a1c)[1] = "row_id"
+```
+
+```{r}
+std_times <- o2_bp %>%
+  group_by(UniqueIdentifier) %>%
+  summarize(
+    pre_Date = min(Date),
+    post_Date = max(Date),
+    std_time = ifelse(Date == pre_Date, 0, as.numeric(post_Date - pre_Date))
+  ) %>%
+  select(std_time) %>% 
+  ungroup() %>%
+  mutate(row_id = as.numeric(o2_bp[["row_id"]])) %>% 
+  select(std_time, row_id)
+
+o2_bp = left_join(o2_bp, std_times, by="row_id") 
+o2_bp = o2_bp %>% mutate(Sex = ifelse(o2_bp$Sex == "M", 1, 0))
+```
+
+```{r}
+# ggplot(data=o2_bp, mapping=aes(x=std_time, y=Systolic, group=UniqueIdentifier, color=Marsh)) +
+#   geom_line()
+```
+
+```{r}
+mod_o2_bp = lme(
+  fixed = Systolic ~ std_time * Marsh + age + Sex + IncomeLevel + BLACERISK + avg.bmi,
+  random = ~ std_time | UniqueIdentifier,
+  data = o2_bp,
+  method = "REML"
+)
+summary(mod_o2_bp)
+```
+
