@@ -11,6 +11,7 @@ fp_enc = file.path(getwd(), "Raw Data/UWDataEncounters.csv")
 fp_panel = file.path(getwd(), "Raw Data/UWDataPanel.csv")
 fp_koh = file.path(getwd(), "Raw Data/UWDataKOHAttendance.csv")
 fp_exenc = file.path(getwd(), "Raw Data/UWExtraEncounterData.csv")
+fp_missing_bmi = file.path(getwd(), "Raw Data/UWBMIMissing.csv")
 
 a1c <- read.csv(fp_a1c)
 bmi <- read.csv(fp_bmi)
@@ -20,6 +21,7 @@ enc <- read.csv(fp_enc)
 panel <- read.csv(fp_panel, na.strings = "")
 koh.attend <- read.csv(fp_koh)
 enc.extra <- read.csv(fp_exenc)
+missing_bmi <- read.csv(fp_missing_bmi)
 
 # change cases where PreDM=1 and T2DM=1 to PreDM=0
 diag$PreDM[diag$PreDM == 1 & diag$T2DM == 1] <- 0
@@ -30,7 +32,15 @@ a1c.nona <- a1c %>% filter(!is.na(A1c) & !is.na(Date)) %>% distinct()
 
 bmi$Date <- mdy(bmi$Date)
 bmi.nona <- bmi %>% filter(!is.na(Date) & !is.na(BMI)) %>% distinct() %>% filter(BMI<=250)
-
+missing_bmi$LastBMIDate <- mdy(missing_bmi$LastBMIDate)
+missing_bmi$LastHeightDate <- mdy(missing_bmi$LastHeightDate)
+missing_bmi$LastWeightDate <- mdy(missing_bmi$LastWeightDate)
+missing_bmi <- missing_bmi %>% select(-c(BMIRefusedReason, BMIRefusedDate)) %>%
+  mutate(BMI = ifelse(LastBMIDate >= LastWeightDate, LastBMI, (LastWeight / (LastHeight)^2) * 703),
+         Date = ifelse(LastBMIDate >= LastWeightDate, LastBMIDate, LastWeightDate))
+missing_bmi <- missing_bmi %>% rename(UniqueIdentifier = uniqueIdentifier) %>% select(c(UniqueIdentifier, BMI, Date))
+missing_bmi$BMI <- round(missing_bmi$BMI, digits=2)
+bmi.nona <- rbind(bmi.nona, missing_bmi)
 
 bp$Date <- mdy(bp$Date)
 bp.nona <- bp %>% filter(!is.na(Date) & !is.na(Systolic)) %>% distinct()
