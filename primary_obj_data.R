@@ -296,13 +296,6 @@ obj1$death <- ifelse(is.na(obj1$DeceasedDate), 0, 1)
 # this is the full dataset for table 1 for primary objective analysis population
 write.csv(obj1, 'Analysis Data/Obj1_AllPts.csv')
 
-# find patients with extreme or missing BMI
-obj1.bmi.reads <- left_join(obj1, bmi.nona.18, by = "UniqueIdentifier") %>% select(c("UniqueIdentifier","BMI","Date"))
-
-no.bmi <- obj1 %>% filter(is.na(avg.bmi))
-write.csv(no.bmi, "Obj1_noBMI.csv")
-
-
 # multiple imputation for risk scores
 
 obj1.impute <- obj1 %>% select(c(UniqueIdentifier, KOH, koh.counts, HTN, PreDM, T2DM, Diabetes, both, age, Ethnicity, Race, Sex, 

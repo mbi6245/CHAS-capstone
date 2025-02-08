@@ -4,6 +4,7 @@ library(gtsummary)
 library(lubridate)
 library(naniar)
 library(flextable)
+library(missRanger)
 setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 fp_gdp = file.path(getwd(), "general_data_prep.R")
 source(fp_gdp)
@@ -57,15 +58,11 @@ htn_reads_LME.post <- htn_reads_LME %>%
 htn_LME_final <- rbind(htn_reads_LME.pre, htn_reads_LME.post) %>% group_by(UniqueIdentifier) %>% arrange(Date, .by_group=TRUE)
 htn_LME_final <- left_join(htn_LME_final, obj2.cov, by = "UniqueIdentifier")
 
-write.csv(htn_LME_final, "Analysis Data/Obj2BP_LME.csv") 
-
 # drop all measurements not taken at earliest and most recent dates
 htn_reads_pp.post = htn_LME_final %>% select(c(UniqueIdentifier, Date, Systolic, Diastolic)) %>% 
   group_by(UniqueIdentifier) %>% filter(Date == max(Date)) %>% ungroup()
 htn_reads_pp <- rbind(htn_reads_LME.pre, htn_reads_pp.post) %>% group_by(UniqueIdentifier) %>% arrange(Date, .by_group=TRUE)
 htn_reads_pp <- left_join(htn_reads_pp, obj2.cov, by = "UniqueIdentifier")
-
-write.csv(htn_reads_pp, "Analysis Data/Obj2BPPrePost.csv")
 
 ##########################
 # T2DM DATASET PREPARATION
@@ -114,8 +111,6 @@ a1c_LME_final <- left_join(a1c_LME_final, obj2.cov, by = "UniqueIdentifier")
 a1c_LME_final <- a1c_LME_final %>% group_by(UniqueIdentifier, Date) %>% mutate(avg.a1c = mean(A1c)) %>% 
   slice_head() %>% mutate(A1c = avg.a1c) %>% select(-avg.a1c)
 
-write.csv(a1c_LME_final, "Analysis Data/Obj2A1c_LME.csv") 
-
 # drop all measurements not taken at earliest and most recent dates
 a1c_reads_pp.post = a1c_LME_final %>% select(c(UniqueIdentifier, Date, A1c)) %>% 
   group_by(UniqueIdentifier) %>% filter(Date == max(Date)) %>% ungroup()
@@ -124,12 +119,34 @@ a1c_reads_pp <- left_join(a1c_reads_pp, obj2.cov, by = "UniqueIdentifier")
 a1c_reads_pp <- a1c_reads_pp %>% group_by(UniqueIdentifier, Date) %>% mutate(avg.a1c = mean(A1c)) %>% 
   slice_head() %>% mutate(A1c = avg.a1c) %>% select(-avg.a1c)
 
-write.csv(a1c_reads_pp, "Analysis Data/Obj2A1cPrePost.csv")
-
 # combine datasets to get patients for table 1
-obj2 <- rbind(a1c_reads_pp, htn_reads_pp) %>% distinct(UniqueIdentifier)
+obj2 <- rbind(a1c_reads_pp, htn_reads_pp) %>% group_by(UniqueIdentifier) %>% slice_head() %>% select(UniqueIdentifier)
 obj2 <- left_join(obj2, table1, by = "UniqueIdentifier")
+obj2$death <- ifelse(is.na(obj2$DeceasedDate), 0, 1)
 write.csv(obj2, "Analysis Data/Obj2_AllPts.csv")
 
-no.bmi <- obj2 %>% filter(is.na(avg.bmi))
-write.csv(no.bmi, "Obj2_noBMI.csv")
+# multiple imputation for risk scores
+
+obj2.impute <- obj2 %>% select(c(UniqueIdentifier, KOHParticipant, HTN, PreDM, T2DM, Diabetes, both, age, Ethnicity, Race, Sex, 
+                                 Language, No.column.name, IncomeLevel, BLACERISK, Marsh, avg.bmi, death))
+
+set.seed(1)
+obj2.mult.imput <- missRanger(obj2.impute, . ~ .-UniqueIdentifier, pmm.k=3, num.trees=100, verbose=F)
+obj2.mult.imput.var <- obj2.mult.imput %>% select(c(UniqueIdentifier, IncomeLevel, BLACERISK, avg.bmi))
+
+# add the imputed data to the datasets
+a1c_reads_pp <- a1c_reads_pp %>% select(-c(IncomeLevel, BLACERISK, avg.bmi))
+a1c_reads_pp.imput <- left_join(a1c_reads_pp, obj2.mult.imput.var, by="UniqueIdentifier")
+write.csv(a1c_reads_pp.imput, "Analysis Data/Obj2A1cPrePost.csv")
+
+a1c_LME_final <- a1c_LME_final %>% select(-c(IncomeLevel, BLACERISK, avg.bmi))
+a1c_LME_final.imput <- left_join(a1c_LME_final, obj2.mult.imput.var, by="UniqueIdentifier")
+write.csv(a1c_LME_final.imput, "Analysis Data/Obj2A1c_LME.csv") 
+
+htn_reads_pp <- htn_reads_pp %>% select(-c(IncomeLevel, BLACERISK, avg.bmi))
+htn_reads_pp.imput <- left_join(htn_reads_pp, obj2.mult.imput.var, by="UniqueIdentifier")
+write.csv(htn_reads_pp.imput, "Analysis Data/Obj2BPPrePost.csv")
+
+htn_LME_final <- htn_LME_final %>% select(-c(IncomeLevel, BLACERISK, avg.bmi))
+htn_LME_final.imput <- left_join(htn_LME_final, obj2.mult.imput.var, by="UniqueIdentifier")
+write.csv(htn_LME_final.imput, "Analysis Data/Obj2BP_LME.csv") 
