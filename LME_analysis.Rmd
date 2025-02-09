@@ -19,12 +19,12 @@ bp <- read.csv('Analysis Data/Obj1BP_LME.csv')[,-1]
 
 ```{r cars}
 # standardizing time as days from baseline measurement
-bp.first <- bp %>% group_by(UniqueIdentifier) %>% arrange(BPDate, .by_group=TRUE) %>% slice_head() %>% 
-  mutate(baseline.lag = round(as.numeric(difftime(KOH.start.dt, BPDate, units="days")))) %>% select(c(UniqueIdentifier, baseline.lag))
+bp.first <- bp %>% group_by(UniqueIdentifier) %>% arrange(BPDate, .by_group=TRUE) %>% slice_head()
+bp.first$BPDate <- bp.first$KOH.start.dt
+bp <- bp %>% filter(BPDate>KOH.start.dt)
 
-bp <- left_join(bp, bp.first, by="UniqueIdentifier")
+bp <- rbind(bp.first, bp) %>% arrange(UniqueIdentifier, BPDate)
 bp <- bp %>% mutate(time.from.koh1 = round(as.numeric(difftime(BPDate, KOH.start.dt, units="days"))))
-bp$time.std <- bp$time.from.koh1 + bp$baseline.lag
 bp <- bp %>% mutate(koh.cat = case_when(KOH.none == 1 ~ 'None',
                                         KOH.one == 1 ~ 'One',
                                         KOH.mult == 1 ~ 'Multiple'))
@@ -32,15 +32,15 @@ bp$koh.cat <- factor(bp$koh.cat, levels=c("None","One","Multiple"))
 bp$male <- ifelse(bp$Sex == 'M', 1, 0)
 
 ggplot(data= bp, 
-       aes(x=time.std, y=Systolic, group=UniqueIdentifier, colour=koh.cat))+
+       aes(x=time.from.koh1, y=Systolic, group=UniqueIdentifier, colour=koh.cat))+
   geom_line() +
   xlab("Time (days)") + ylab("Systolic Blood Pressure (mmHg)") + theme_bw()
 
-summary_bp <- bp %>% group_by(koh.cat, time.std) %>%
+summary_bp <- bp %>% group_by(koh.cat, time.from.koh1) %>%
   summarise(mean_bp = mean(Systolic))
 
 ggplot(data=summary_bp, 
-       aes(x=time.std, y=mean_bp, group=koh.cat, colour=koh.cat))+
+       aes(x=time.from.koh1, y=mean_bp, group=koh.cat, colour=koh.cat))+
   geom_line() +
   xlab("Time (days)") + ylab("Systolic Blood Pressure (mmHg)") + theme_bw()
 ```
@@ -48,68 +48,138 @@ ggplot(data=summary_bp,
 
 ```{r}
 bp.mod1 <- lme(
-  fixed = Systolic ~ time.std * koh.cat + age + male + IncomeLevel + BLACERISK + avg.bmi,
-  random = ~ time.std | UniqueIdentifier,
+  fixed = Systolic ~ time.from.koh1 * koh.cat + age + male + IncomeLevel + BLACERISK + avg.bmi,
+  random = ~ time.from.koh1 | UniqueIdentifier,
   data = bp,
   method = "REML"
 )
 summary(bp.mod1)
 ```
+
 ```{r}
 a1c <- read.csv('Analysis Data/Obj1A1c_LME.csv')[,-1]
 ```
 
 ```{r cars}
 # standardizing time as days from baseline measurement
-a1c.first <- a1c %>% group_by(UniqueIdentifier) %>% arrange(A1cDate, .by_group=TRUE) %>% slice_head() %>% 
-  mutate(baseline.lag = round(as.numeric(difftime(KOH.start.dt, A1cDate, units="days")))) %>% select(c(UniqueIdentifier, baseline.lag))
+a1c.first <- a1c %>% group_by(UniqueIdentifier) %>% arrange(A1cDate, .by_group=TRUE) %>% slice_head()
+a1c.first$A1cDate <- a1c.first$KOH.start.dt
+a1c <- a1c %>% filter(A1cDate>KOH.start.dt)
 
-a1c <- left_join(a1c, a1c.first, by="UniqueIdentifier")
+a1c <- rbind(a1c.first, a1c) %>% arrange(UniqueIdentifier, A1cDate)
 a1c <- a1c %>% mutate(time.from.koh1 = round(as.numeric(difftime(A1cDate, KOH.start.dt, units="days"))))
-a1c$time.std <- a1c$time.from.koh1 + a1c$baseline.lag
 a1c <- a1c %>% mutate(koh.cat = case_when(KOH.none == 1 ~ 'None',
                                         KOH.one == 1 ~ 'One',
                                         KOH.mult == 1 ~ 'Multiple'))
 a1c$koh.cat <- factor(a1c$koh.cat, levels=c("None","One","Multiple"))
 a1c$male <- ifelse(a1c$Sex == 'M', 1, 0)
 
-a1c %>% filter(koh.cat == 'Multiple') %>%
-  ggplot(aes(x=time.std, y=A1c, group=UniqueIdentifier))+
+ggplot(data= a1c, 
+       aes(x=time.from.koh1, y=A1c, group=UniqueIdentifier, colour=koh.cat))+
   geom_line() +
   xlab("Time (days)") + ylab("A1c") + theme_bw()
 
-ggplot(data= a1c, 
-       aes(x=time.std, y=A1c, group=UniqueIdentifier, colour=koh.cat))+
-  geom_line() +
-  xlab("Time (days)") + ylab("A1c") + theme_bw() + xlim(0, 1100)
-
-summary_a1c <- a1c %>% group_by(koh.cat, time.std) %>%
+summary_a1c <- a1c %>% group_by(koh.cat, time.from.koh1) %>%
   summarise(mean_a1c = mean(A1c))
 
 ggplot(data=summary_a1c, 
-       aes(x=time.std, y=mean_a1c, group=koh.cat, colour=koh.cat))+
+       aes(x=time.from.koh1, y=mean_a1c, group=koh.cat, colour=koh.cat))+
   geom_line() +
-  xlab("Time (days)") + ylab("A1c") + theme_bw() + xlim(0, 1100)
+  xlab("Time (days)") + ylab("A1c") + theme_bw()
 
 ```
 
 
 ```{r}
 a1c.mod1 <- lme(
-  fixed = A1c ~ time.std * koh.cat + age + male + IncomeLevel + BLACERISK + avg.bmi,
-  random = ~ time.std | UniqueIdentifier,
+  fixed = A1c ~ time.from.koh1 * koh.cat + age + male + IncomeLevel + BLACERISK + avg.bmi,
+  random = ~ time.from.koh1 | UniqueIdentifier,
   data = a1c,
   method = "REML"
 )
-summary(bp.mod1)
+summary(a1c.mod1)
 ```
 
 
 
-
+secondary objective
 
 ```{r}
+bp2 <- read.csv('Analysis Data/Obj2BP_LME.csv')[,-1]
 
+bp2$KOHDate <- as.Date('2023-04-05')
+bp2$Date <- as.Date(bp2$Date)
+bp2.first <- bp2 %>% group_by(UniqueIdentifier) %>% arrange(Date, .by_group=TRUE) %>% slice_head()
+bp2.first$Date <- bp2.first$KOHDate
+bp2 <- bp2 %>% filter(Date>KOHDate)
+
+bp2 <- rbind(bp2.first, bp2) %>% arrange(UniqueIdentifier, Date)
+bp2 <- bp2 %>% mutate(time = round(as.numeric(difftime(Date, KOHDate, units="days"))))
+
+bp2$male <- ifelse(bp2$Sex == 'M', 1, 0)
+bp2$Marsh <- factor(bp2$Marsh)
+
+ggplot(data= bp2, 
+       aes(x=time, y=Systolic, group=UniqueIdentifier, colour=Marsh))+
+  geom_line() +
+  xlab("Time (days)") + ylab("Systolic Blood Pressure (mmHg)") + theme_bw()
+
+summary_bp2 <- bp2 %>% group_by(Marsh, time) %>%
+  summarise(mean_bp = mean(Systolic))
+
+ggplot(data=summary_bp2, 
+       aes(x=time, y=mean_bp, group=Marsh, colour=Marsh))+
+  geom_line() +
+  xlab("Time (days)") + ylab("Systolic Blood Pressure (mmHg)") + theme_bw()
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+```{r}
+bp.mod2 <- lme(
+  fixed = Systolic ~ time * Marsh + age + male + IncomeLevel + avg.bmi,
+  random = ~ time | UniqueIdentifier,
+  data = bp2,
+  method = "REML"
+)
+summary(bp.mod2)
+```
+
+objective 2 A1c
+```{r}
+a1c2 <- read.csv('Analysis Data/Obj2A1c_LME.csv')[,-1]
+
+a1c2$KOHDate <- as.Date('2023-04-05')
+a1c2$Date <- as.Date(a1c2$Date)
+a1c2.first <- a1c2 %>% group_by(UniqueIdentifier) %>% arrange(Date, .by_group=TRUE) %>% slice_head()
+a1c2.first$Date <- a1c2.first$KOHDate
+a1c2 <- a1c2 %>% filter(Date>KOHDate)
+
+a1c2 <- rbind(a1c2.first, a1c2) %>% arrange(UniqueIdentifier, Date)
+a1c2 <- a1c2 %>% mutate(time = round(as.numeric(difftime(Date, KOHDate, units="days"))))
+
+a1c2$male <- ifelse(a1c2$Sex == 'M', 1, 0)
+a1c2$Marsh <- factor(a1c2$Marsh)
+
+ggplot(data= a1c2, 
+       aes(x=time, y=A1c, group=UniqueIdentifier, colour=Marsh))+
+  geom_line() +
+  xlab("Time (days)") + ylab("A1c") + theme_bw()
+
+summary_a1c2 <- a1c2 %>% group_by(Marsh, time) %>%
+  summarise(mean_a1c = mean(A1c))
+
+ggplot(data=summary_a1c2, 
+       aes(x=time, y=mean_a1c, group=Marsh, colour=Marsh))+
+  geom_line() +
+  xlab("Time (days)") + ylab("A1c") + theme_bw()
+```
+
+```{r}
+a1c.mod2 <- lme(
+  fixed = A1c ~ time * Marsh + age + male + IncomeLevel + avg.bmi,
+  random = ~ time | UniqueIdentifier,
+  data = a1c2,
+  method = "REML"
+)
+summary(a1c.mod2)
+```
+
