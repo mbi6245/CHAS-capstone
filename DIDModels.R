@@ -1,14 +1,141 @@
 # DID Models
+library(tidyverse)
+library(lubridate)
+library(zoo)
+library(rstudioapi)
 library(did)
 
+
+# Import dataframes DataCleaningDID.R script
+
+
+fp_visits = file.path(getwd(), "Analysis Data/all_visit_types.csv")
+all_visit_types <- read.csv(fp_visits) 
+# Mark Visit Types with Marshallese and NHW
 # all_visit_types  has M indicator from previous DataCleaningDID.R script, which shows 
 # 1 = marshallese, 0 = Non-Hispanic White, NA = Other not in our analysis)
 
-# we will have some of the same patients who appear in both time frames, but more in the 2nd time period
 
+fp_tarpop = file.path(getwd(), "Analysis Data/targetpop_DID.csv")
+targetpop_DID <- read.csv(fp_tarpop) 
+
+
+# 
+# Marshallese <- targetpop_DID %>% filter(Race == 'Marshallese' | Language == 'Marshallese'| KOHParticipant == 1) #
+# MarshalleseUniqueID <- Marshallese$UniqueID
+# 
+# 
+# Control <- targetpop_DID %>% filter((Race == 'White' & Ethnicity == 'Not Hispanic or Latino'))
+# ControlUniqueID <- Control$UniqueID
+
+
+
+
+# for pretrends
+# group by quarter
+# test <- lubridate::quarter(all_visit_types$Date, with_year = TRUE)
+# the quarter is given by 2017.1 for first quarter, 2017.2 for 2nd quarter, ... 2017.4 for last quarter of the year
+
+all_visit_types_quarter <- all_visit_types %>% mutate(quarter = quarter(Date, with_year = TRUE)) 
+
+all_visit_types_counts_per_quarter <- all_visit_types_quarter %>% group_by(quarter) %>% count()
+
+
+
+# need to find out how many patients were there in the beginning and end of DID
+
+
+panel_balance <- function(start_date, end_date, Service) {
+  pretreat <- all_visit_types %>% filter( Date >= {{start_date}}, Date <= {{end_date}} , 
+                                          ServiceLine == {{Service}})
+
+  marsh <- pretreat %>% filter(marsh == 1) 
+  UniqueIDMarsh <- unique(marsh$UniqueIdentifier)
+  NHW <- pretreat %>% filter(marsh == 0) 
+  UniqueIDNHW <- unique(NHW$UniqueIdentifier)
+  return(list(NHW_count = length(unique(NHW$UniqueIdentifier)), 
+              Marsh_count = length(unique(marsh$UniqueIdentifier)), 
+              total_count =   length(unique(pretreat$UniqueIdentifier)),
+              UniqueIDMarsh = UniqueIDMarsh, 
+              UniqueIDNHW = UniqueIDNHW))
+}
+
+# I run the two time period and compare 
+
+pretest <- panel_balance(start_date = "2019-06-01", end_date = "2019-08-31", Service = "Emergency")
+posttest <- panel_balance(start_date = "2022-06-01", end_date = "2022-08-31", Service = "Emergency")
+
+length(intersect(pretest$UniqueIDMarsh, posttest$UniqueIDMarsh))
+# 9 
+
+length(intersect(pretest$UniqueIDNHW, posttest$UniqueIDNHW))
+# 590
+
+
+
+test <- pretreat %>% filter(marsh == 1) 
+nrow(test)
+
+test2 <- posttreat %>% filter(marsh == 1) 
+nrow(test2)
+
+test3 <- pretreat %>% filter(marsh == 0) 
+nrow(test3)
+
+test4 <- posttreat %>% filter(marsh == 0) 
+nrow(test4)
+
+
+
+
+# who was there in June, July and Aug 2019 (pre-treatment)
 colnames(all_visit_types)
+class(all_visit_types$Date)
+# test <- all_visit_types_quarter %>% filter(Date >= "2017-01-01", Date <= "2017-01-31")
 
 
+pretreat <- all_visit_types %>% filter( Date >= "2019-06-01", Date <= "2019-08-31" ) %>%
+  mutate(PreTreat = 1)
+
+test <- pretreat %>% filter(marsh == 1, 
+                    ServiceLine == "Emergency") 
+nrow(test)
+# 58 Marshallese Visited ER in the pretreat quarter
+# !check this number against my yearmonth table to make sure I did it right
+
+test <- pretreat %>% filter(marsh == 0, 
+                            ServiceLine == "Emergency") 
+nrow(test)
+# 3243 Control visited ER in the pretreat quarter
+
+
+# who was there in June, July and Aug 2022 (post-treatment)
+posttreat <- all_visit_types %>% filter( Date >= "2022-06-01", Date <= "2022-08-31" ) %>%
+  mutate(PostTreat = 1)
+
+test <- posttreat %>% filter(marsh == 1, 
+                            ServiceLine == "Emergency") 
+# 73
+
+test <- posttreat %>% filter(marsh == 0, 
+                            ServiceLine == "Emergency") 
+nrow(test)
+#4394
+
+
+
+# set up rates for DID pretends and to estimate
+# We decided on # of Marshallese ER visits per quarter/ total Marshallese population per quarter
+# and  # of Marshallese ER visits per quarter/ total Marshallese population per year
+
+# !
+# make a function that lets me control the population size
+# need to divide by Marsh and NHW
+
+# !
+
+
+# old function
 pop_size <- function(marsh0_or_1, year) {
   x <- all_visit_types %>% filter(marsh == {{marsh0_or_1}}) %>% filter(year == {{year}}) 
   z<- length(unique(x$UniqueIdentifier))
@@ -17,13 +144,13 @@ pop_size <- function(marsh0_or_1, year) {
 
 
 pop_size_marsh <- c(pop_size(1, 2017), # marshallese in 2017
-pop_size(1, 2018),  # marshallese in 2018...
-pop_size(1, 2019),
-pop_size(1, 2020),
-pop_size(1, 2021),
-pop_size(1, 2022),
-pop_size(1, 2023),
-pop_size(1, 2024))
+                    pop_size(1, 2018),  # marshallese in 2018...
+                    pop_size(1, 2019),
+                    pop_size(1, 2020),
+                    pop_size(1, 2021),
+                    pop_size(1, 2022),
+                    pop_size(1, 2023),
+                    pop_size(1, 2024))
 
 pop_size_white <- c(pop_size(0, 2017), # Non-Hisp white  in 2017
                     pop_size(0, 2018),
@@ -38,7 +165,26 @@ pop_size_year <- rbind(pop_size_marsh , pop_size_white)
 colnames(pop_size_year) <- c(2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024)
 
 
-#whoo-hoo it works
+
+
+
+# look at pretrends. Per Ting we don't need to analyze the pre-treatment time periods formally 
+#but looking at the two trends is a good indicaotr if they are stable
+
+
+
+
+
+
+
+
+
+
+
+# we will have some of the same patients who appear in both time frames, but more in the 2nd time period
+
+colnames(all_visit_types)
+
 
 
 ########## Visualize Rates of ER visits ###########
@@ -98,9 +244,9 @@ ER2016_2025_year_marsh %>% filter(year != 2025) %>% # !note that 2025 is only ju
 
 # Jan 2017 to Aug 2019 ER Pretrends (about 2.5 years)
 
-# Sept 2019 to Dec 2022 DID ER Estimates for CHW 1 and 2
+# Sept 2019 to Sept 2022 DID ER Estimates for CHW 1 and 2
 
-# Jan 2023 to Dec 2024 additional ER trends from CHW 3 and 4, KOH and Change to Control Pop Insurance (Medicaid Unwinding ~ Dec 2022) 
+# Oct 2022 to Dec 2024 additional ER trends from CHW 3 and 4, KOH and Change to Control Pop Insurance (Medicaid Unwinding ~ Dec 2022) 
 
 
 # ! Note that ER visits are recorded from 2017 forward. 
@@ -108,9 +254,9 @@ ER2016_2025_year_marsh %>% filter(year != 2025) %>% # !note that 2025 is only ju
 # But primary care provider (PCP) visits are only recorded from 2018 forward
 # Jan 2018 to Aug 2019 PCP Pretrends (about 1.5 years)
 
-# Sept 2019 to Dec 2022 DID PCP Estimates for CHW 1 and 2
+# Sept 2019 to Sept 2022 DID PCP Estimates for CHW 1 and 2
 
-# Jan 2023 to Dec 2024 additional PCP trends from CHW 3 and 4, KOH and Change to Control Pop Insurance (Medicaid Unwinding ~ Dec 2022) 
+# Oct 2022 to Dec 2024 additional PCP trends from CHW 3 and 4, KOH and Change to Control Pop Insurance (Medicaid Unwinding ~ Dec 2022) 
 
 
 

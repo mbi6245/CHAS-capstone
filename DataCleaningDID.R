@@ -5,54 +5,7 @@ library(lubridate)
 library(zoo)
 library(rstudioapi)
 
-setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
-fp_ex_enc = file.path(getwd(), "Raw Data/UWExtraEncounterData.csv")
-fp_enc = file.path(getwd(), "Raw Data/UWDataEncounters.csv")
-
-all_visit_types_2016_2021 <- read.csv(fp_ex_enc)
-# Jan 2016 to Dec 2021
-all_visit_types_2021_2025 <- read.csv(fp_enc)
-# Jan 2021 ro Jan 2025
-
-
-# make sure the sets are mutually exclusive
-
-#?lubridate
-#
-# min(as.Date(all_visit_types_2016_2021$Date, format = "%m/%d/%Y"))
-# # "2016-01-02"
-# max(as.Date(all_visit_types_2016_2021$Date, format = "%m/%d/%Y"))
-# # "2021-12-31"
-# min(as.Date(all_visit_types_2021_2025$Date, format = "%m/%d/%Y"))
-# # "2021-01-09"
-# max(as.Date(all_visit_types_2021_2025$Date, format = "%m/%d/%Y"))
-# # "2025-01-08"
-#
-# check <- intersect(all_visit_types_2016_2021, all_visit_types_2021_2025 )
-# # all 2021 dates are overlapping
-
-
-# Remove 2021 from one set
-#lubridate::year(x)
-all_visit_types_2016_2021 <- all_visit_types_2016_2021 %>% mutate(year = lubridate::year(as.Date(all_visit_types_2016_2021$Date, format = "%m/%d/%Y")) )
-
-all_visit_types_2016_2020 <- all_visit_types_2016_2021 %>% filter(year != 2021)
-
-# add year to all_visit_types_2021_2025 as well
-all_visit_types_2021_2025 <- all_visit_types_2021_2025 %>% mutate(year = lubridate::year(as.Date(all_visit_types_2021_2025$Date, format = "%m/%d/%Y")) )
-
-colnames(all_visit_types_2021_2025) == colnames(all_visit_types_2016_2020)
-
-# combine all visit types across years
-all_visit_types <- rbind(all_visit_types_2016_2020, all_visit_types_2021_2025)
-
-nrow(all_visit_types_2016_2020) + nrow(all_visit_types_2021_2025) == nrow(all_visit_types)
-
-# check if we have race/lang data for all the uniqueIDs
-
-
-#all_visit_types
-
+# Demographics #
 ######################
 fp_pnl = file.path(getwd(), "Raw Data/UWDataPanel.csv")
 panel <- read.csv(fp_pnl) # demographics
@@ -119,7 +72,7 @@ min(deceased$DeceasedDate)
 # this is before the end of the DID analysis so I would remove it...
 max(deceased$DeceasedDate)
 # "2024-12-25"
-hist(deceased$DeceasedDate, breaks = 24)
+#hist(deceased$DeceasedDate, breaks = 24)
 with(deceased, table( Marsh))
 
 # 20 marshallese and 316 NHW 
@@ -271,50 +224,147 @@ visuals_DID(ClinicLocation) # lots of marshallese have no clinic assigned
 
 
 
-
-
-
-
-
-
-
 ##### FROM NOW ON USE targetpop_DID INSTEAD OF panel.18 ##########
 
 
 
 Marshallese <- targetpop_DID %>% filter(Race == 'Marshallese' | Language == 'Marshallese'| KOHParticipant == 1) #
 MarshalleseUniqueID <- Marshallese$UniqueID
+
+#number of unique Marshallese
+length(unique(MarshalleseUniqueID))
+# 849
+
 Control <- targetpop_DID %>% filter((Race == 'White' & Ethnicity == 'Not Hispanic or Latino'))
 ControlUniqueID <- Control$UniqueID
 
-# From Gabby
-# create our population of non-hispanic whites and marshallese (language = marsh or race = marsh or KOH = 1) - think there might be a KOH participant that doesn't have race or language as marshallese but I need to double check
-# targetpop <- panel.18 %>% filter(Race == 'Marshallese' | Language == 'Marshallese' | KOHParticipant == 1 | (Race == 'White' & Ethnicity == 'Not Hispanic or Latino'))
+# Number of unique controls 
+length(unique(ControlUniqueID))
+# 25616
+
+
+
+
+
+
+
+
+########### Start With Encounter Types #############
+
+
+setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
+fp_ex_enc = file.path(getwd(), "Raw Data/UWExtraEncounterData.csv")
+fp_enc = file.path(getwd(), "Raw Data/UWDataEncounters.csv")
+
+all_visit_types_2016_2021 <- read.csv(fp_ex_enc)
+# Jan 2016 to Dec 2021
+all_visit_types_2021_2025 <- read.csv(fp_enc)
+# Jan 2021 ro Jan 2025
+
+
+# make sure the sets are mutually exclusive
+
+#?lubridate
 #
-# # make marshallese indicator variable
-# targetpop <- targetpop %>% mutate(Marsh = ifelse((Race == 'White' & Ethnicity == 'Not Hispanic or Latino'), 0, 1),
-#                                   Group = ifelse(Marsh == 1, "Marshallese", "Non-Marshallese"))
+# min(as.Date(all_visit_types_2016_2021$Date, format = "%m/%d/%Y"))
+# # "2016-01-02"
+# max(as.Date(all_visit_types_2016_2021$Date, format = "%m/%d/%Y"))
+# # "2021-12-31"
+# min(as.Date(all_visit_types_2021_2025$Date, format = "%m/%d/%Y"))
+# # "2021-01-09"
+# max(as.Date(all_visit_types_2021_2025$Date, format = "%m/%d/%Y"))
+# # "2025-01-08"
+#
+# check <- intersect(all_visit_types_2016_2021, all_visit_types_2021_2025 )
+# # all 2021 dates are overlapping
 
 
-# !remove homeless from control? yes
-# targetpop
-# panel.18 <- panel.18 %>% filter(No.column.name != "Homeless Shelter" |
-#                                   No.column.name != "Street" )
+# Remove 2021 from one set
+#lubridate::year(x)
+all_visit_types_2016_2021 <- all_visit_types_2016_2021 %>% mutate(year = lubridate::year(as.Date(all_visit_types_2016_2021$Date, format = "%m/%d/%Y")) )
 
-# !remove ages that exceed Marshallese?
+all_visit_types_2016_2020 <- all_visit_types_2016_2021 %>% filter(year != 2021)
+
+# add year to all_visit_types_2021_2025 as well
+all_visit_types_2021_2025 <- all_visit_types_2021_2025 %>% mutate(year = lubridate::year(as.Date(all_visit_types_2021_2025$Date, format = "%m/%d/%Y")) )
+
+colnames(all_visit_types_2021_2025) == colnames(all_visit_types_2016_2020)
+
+# combine all visit types across years
+all_visit_types <- rbind(all_visit_types_2016_2020, all_visit_types_2021_2025)
+
+nrow(all_visit_types_2016_2020) + nrow(all_visit_types_2021_2025) == nrow(all_visit_types)
+
+# check if we have race/lang data for all the uniqueIDs
 
 
-# ! Move to top of script? 
-# create table for all visit types
-colnames(all_visit_types)
+#all_visit_types
 
-#colnames(ER2016_2025)
+
+
+
+
+
+########### Make Sure we have data on all patients ############
+# figure out how many races we are missing in 2016 to 2020 data
+all_races <- panel %>% select(UniqueID, KOHParticipant, Ethnicity, Race)
+all_visit_types_race <- full_join(all_visit_types, all_races, by = c("UniqueIdentifier" = "UniqueID") )
+all_visit_types_race %>% summary()
+
+all <- as.data.frame(summary(as.factor(all_visit_types_race$Race)))
+
+
+# Double check, everyone in 2016-2020 is still there in 2021-2025, but there are about 22000 more people too :)
+how_many_stay <- intersect(all_visit_types_2016_2020$UniqueIdentifier, all_visit_types_2021_2025$UniqueIdentifier )
+length(unique(how_many_stay))
+# 30434
+length(unique(all_visit_types$UniqueIdentifier))
+# 52506
+length(unique(all_visit_types_2016_2020$UniqueIdentifier))
+# 30434
+length(unique(all_visit_types_2021_2025$UniqueIdentifier))
+# 52506
+
+all_visit_types_2016_2021$Date <- as.Date(all_visit_types_2016_2021$Date, format = "%m/%d/%Y")
+class(all_visit_types_2016_2021$Date)
+
+all_visit_types$Date <- as.Date(all_visit_types$Date, format = "%m/%d/%Y")
+class(all_visit_types$Date)
+
+# figure out how many races we are missing  - This was excluding the kids because we used panel.18! 
+#
+# panel.18 %>% filter(is.na(Race)) %>% nrow()
+# # 0
+# panel.18 %>% filter(Race == "") %>% nrow()
+# # 112
+# panel.18 %>% filter(Race == "Patient Declined") %>% nrow()
+# # 3144
+# length(unique(all_visit_types_2021_2025$UniqueIdentifier))
+# # 52506
+# # about 6% are unrecorded
+#
+# # with(panel.18, table(Race))
+#
+#
+
+
+
+
+
+
+
+
+
+
+############# Create table for all visit types ##############
+# colnames(all_visit_types)
+
 all_visit_types <- all_visit_types %>% mutate(marsh = if_else((UniqueIdentifier %in% MarshalleseUniqueID), 1,
                                                               if_else((UniqueIdentifier %in% ControlUniqueID), 0, NA) ) )
 
 table_all_visit_types <- as.data.frame( with(all_visit_types, table(ServiceLine,year, marsh)) ) #, useNA = "always"
 
-# ! update when we get all of the Marshallese and White Unique IDs
+# update when we get all of the Marshallese and White Unique IDs
 
 table_all_visit_types_wider <- pivot_wider(table_all_visit_types,
                                            names_from = year,
@@ -469,87 +519,10 @@ pcp_2016_2025_yearmonth_marsh_wider <- pcp_2016_2025_yearmonth_marsh_wider[ , -1
 
 
 
-
-
-
-# figure out how many races we are missing
-colnames(panel)
-all_races <- panel %>% select(UniqueID, KOHParticipant, Ethnicity, Race)
-colnames(all_visit_types)
-all_visit_types_race <- full_join(all_visit_types, all_races, by = c("UniqueIdentifier" = "UniqueID") )
-all_visit_types_race %>% summary()
-
-all <- as.data.frame(summary(as.factor(all_visit_types_race$Race)))
-
-
-# Double check, everyone in 2016-2020 is still there in 2021-2025, but there are about 22000 more people too :)
-how_many_stay <- intersect(all_visit_types_2016_2020$UniqueIdentifier, all_visit_types_2021_2025$UniqueIdentifier )
-length(unique(how_many_stay))
-# 30434
-length(unique(all_visit_types$UniqueIdentifier))
-# 52506
-length(unique(all_visit_types_2016_2020$UniqueIdentifier))
-# 30434
-length(unique(all_visit_types_2021_2025$UniqueIdentifier))
-# 52506
-
-all_visit_types_2016_2021$Date <- as.Date(all_visit_types_2016_2021$Date, format = "%m/%d/%Y")
-class(all_visit_types_2016_2021$Date)
-
-all_visit_types$Date <- as.Date(all_visit_types$Date, format = "%m/%d/%Y")
-
-class(all_visit_types$Date)
-
-# figure out how many races we are missing  - This was excluding the kids because we used panel.18! 
-# colnames(panel.18)
-# all_races <- panel.18 %>% select(UniqueID, KOHParticipant, Ethnicity, Race)
-# colnames(all_visit_types)
-# all_visit_types_race <- full_join(all_visit_types, all_races, by = c("UniqueIdentifier" = "UniqueID") )
-#
-# need_races <- all_visit_types_race %>% filter(is.na(Race))
-# nrow(need_races)
-# need_races <- as.data.frame(need_races)
-# hist(need_races$year)
-# # most of the missing races are since 2021
-# need_races <- as.data.frame(need_races) %>% filter(year < 2021)
-# hist(need_races$year)
-# nrow(need_races)
-# # 45183
-#
-# need_races <- need_races %>% filter(ServiceLine != "Unmapped")
-# # 34173
-# hist(need_races$year)
-# need_races_uniqueID <- unique(need_races$UniqueIdentifier)
-# length(need_races_uniqueID)
-# # 4558 or about 15% of the 30434 patients
-# length(unique(all_visit_types_2016_2020$UniqueIdentifier))
-# # 30434
-#
-#
-#
-# panel.18 %>% filter(is.na(Race)) %>% nrow()
-# # 0
-# panel.18 %>% filter(Race == "") %>% nrow()
-# # 112
-# panel.18 %>% filter(Race == "Patient Declined") %>% nrow()
-# # 3144
-# length(unique(all_visit_types_2021_2025$UniqueIdentifier))
-# # 52506
-# # about 6% are unrecorded
-#
-# # with(panel.18, table(Race))
-#
-#
-#
-
-
-# ! Make a function for each type of visit
+#  Make a function for each type of visit? We have these numbers in the full table 
 # #  Urgent Care
 # Urgent2016_2025 <- all_visit_types |> filter( ServiceLine == "Urgent Care")
-# 
-# Urgent2016_2025_year <-  as.data.frame( with(Urgent2016_2025, table(year)))  # , useNA = "always"
-# #  Urgent Care
-# 
+#  
 # Urgent2016_2025 <- Urgent2016_2025 %>% mutate(marsh = if_else((UniqueIdentifier %in% MarshalleseUniqueID), 1,
 #                                                               if_else((UniqueIdentifier %in% ControlUniqueID), 0, NA) ) ) %>%
 #   filter(!is.na(marsh))
