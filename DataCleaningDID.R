@@ -53,11 +53,7 @@ nrow(all_visit_types_2016_2020) + nrow(all_visit_types_2021_2025) == nrow(all_vi
 
 #all_visit_types
 
-
-
-#ER2021_2025 <- all_visit_types |> filter(ServiceLine == "Emergency") #!  | ServiceLine == "Urgent Care"
-ER2016_2025 <- all_visit_types |> filter(ServiceLine == "Emergency") #!  | ServiceLine == "Urgent Care"
-
+######################
 fp_pnl = file.path(getwd(), "Raw Data/UWDataPanel.csv")
 panel <- read.csv(fp_pnl) # demographics
 
@@ -89,9 +85,39 @@ ControlUniqueID <- Control$UniqueID
 # !remove homeless from control? yes
 # targetpop
 panel.18 <- panel.18 %>% filter(No.column.name != "Homeless Shelter" |
-                       No.column.name != "Street" )
+                                  No.column.name != "Street" )
 
 # !remove ages that exceed Marshallese?
+
+
+# ! Move to top of script? 
+# create table for all visit types
+colnames(all_visit_types)
+
+#colnames(ER2016_2025)
+all_visit_types <- all_visit_types %>% mutate(marsh = if_else((UniqueIdentifier %in% MarshalleseUniqueID), 1,
+                                                              if_else((UniqueIdentifier %in% ControlUniqueID), 0, NA) ) )
+
+table_all_visit_types <- as.data.frame( with(all_visit_types, table(ServiceLine,year, marsh)) ) #, useNA = "always"
+
+# ! update when we get all of the Marshallese and White Unique IDs
+
+table_all_visit_types_wider <- pivot_wider(table_all_visit_types,
+                                           names_from = year,
+                                           values_from = Freq)
+
+# export for final report
+#write.csv(table_all_visit_types_wider, "table_all_visit_types_wider.csv")
+
+# table_all_visit_types_wider <- t(table_all_visit_types_wider)
+
+
+
+######## ER VISIT TYPES ###############
+
+#ER2021_2025 <- all_visit_types |> filter(ServiceLine == "Emergency") #!  | ServiceLine == "Urgent Care"
+ER2016_2025 <- all_visit_types |> filter(ServiceLine == "Emergency") #!  | ServiceLine == "Urgent Care"
+
 
 # make table of ER visits per year
 
@@ -114,7 +140,9 @@ ER2016_2025 <- ER2016_2025 %>% mutate(yearmonth = zoo::as.yearmon(ER2016_2025$Da
 ER2016_2025_yearmonth <-  as.data.frame( with(ER2016_2025, table(yearmonth_as_date)))
 
 
-# make table by Marshallese and Non-Hispanic white
+# make tables by Marshallese and Non-Hispanic white
+
+# By Year
 #colnames(ER2016_2025)
 ER2016_2025 <- ER2016_2025 %>% mutate(marsh = if_else((UniqueIdentifier %in% MarshalleseUniqueID), 1,
                                                       if_else((UniqueIdentifier %in% ControlUniqueID), 0, NA) ) ) %>%
@@ -123,6 +151,20 @@ ER2016_2025 <- ER2016_2025 %>% mutate(marsh = if_else((UniqueIdentifier %in% Mar
 # which(is.na(ER2016_2025$marsh))
 
 ER2016_2025_year_marsh <- as.data.frame( with(ER2016_2025, table(year, marsh)) ) #, useNA = "always"
+
+
+ER2016_2025_year_marsh_wider <- pivot_wider(ER2016_2025_year_marsh,
+                                                 names_from = year,
+                                                 values_from = Freq)
+
+ER2016_2025_year_marsh_wider <- as.data.frame(ER2016_2025_year_marsh_wider)
+rownames(ER2016_2025_year_marsh_wider) <- c("Marshallese", "Non-Hispanic White")
+ER2016_2025_year_marsh_wider <- ER2016_2025_year_marsh_wider[ , -1] # removing marsh column so just dates
+
+
+
+
+# By Month
 ER2016_2025_yearmonth_marsh <-  as.data.frame( with(ER2016_2025, table(yearmonth_as_date, marsh)))
 
 
@@ -131,47 +173,19 @@ ER2016_2025_yearmonth_marsh_wider <- pivot_wider(ER2016_2025_yearmonth_marsh,
                  values_from = Freq)
 
 
-ER2016_2025_yearmonth_marsh_wider <- pivot_wider(ER2016_2025_yearmonth_marsh_wider,
-                                           names_from = year,
-                                           values_from = Freq)
 
 ER2016_2025_yearmonth_marsh_wider <- as.data.frame(ER2016_2025_yearmonth_marsh_wider)
 rownames(ER2016_2025_yearmonth_marsh_wider) <- c("Marshallese", "Non-Hispanic White")
-ER2016_2025_yearmonth_marsh_wider <- ER2016_2025_yearmonth_marsh_wider[ , -1]
+ER2016_2025_yearmonth_marsh_wider <- ER2016_2025_yearmonth_marsh_wider[ , -1] # removing marsh column so just dates
 #
 
-# Visualize the Trends of these 2 groups over time
+# Visualize the Trends of these 2 groups over time see DIDVisuals.R
 
 
 # as.Date(as.yearmon(ER2016_2025$Date, "%m/%d/%Y")) # "2023-01-01" sets day to first day of month
 
 class(ER2016_2025_yearmonth_marsh$yearmonth_as_date)
 # factor
-
-ER2016_2025_yearmonth_marsh %>% #not wider version
-  filter(yearmonth_as_date != "2025-01-01") %>% # the year just started
-  ggplot(aes( x= as.Date(yearmonth_as_date), y = Freq, col = marsh )) +
-           geom_line()+
-           labs(x = "Time", y = "Number of ER visits", title = "Number of ER Visits by Month \n Marshallese and Non-Hispanic White Patients \n CHAS Maple and Market Clinics")+
-           theme_bw()
-
-
-# Pure numbers of ER visits for Marshallese per year
-ER2016_2025_year_marsh %>% filter(marsh == 1) %>% filter(year != 2025) %>%
-  ggplot(aes(x= year, y= Freq, col = marsh, group = marsh ))+
-  geom_line()+
-  labs(y = "Number of ER Visits", x = "Year", title = "Number of ER Visits for Marshallese 2016-2024")
-# Note there is a change in 2019 that is flat then uptick again in 2021
-
-# Pure numbers of ER visits for Marshallese per year
-ER2016_2025_year_marsh %>% filter(marsh == 0) %>% filter(year != 2025) %>%
-  ggplot(aes(x= year, y= Freq, col = marsh, group = marsh ))+
-  geom_line()+
-  labs(y = "Number of ER Visits", x = "Year", title = "Number of ER Visits for Non-Hispanic White 2016-2024")
-# Note there is a change in 2019 that is flat then uptick again in 2021
-
-# ! I need to see if we have a good number of patients in the first 5 years as the 2nd five years
-# ! I think we had other patients before?
 
 
 #############################################
@@ -184,7 +198,8 @@ pcp_2016_2025 <- pcp_2016_2025 %>% mutate(year = lubridate::year(as.Date(pcp_201
 #pcp_2016_2025_year <-  as.data.frame( with(pcp_2016_2025, table(year)))  # , useNA = "always"
 
 
-pcp_2016_2025 <- pcp_2016_2025 %>% mutate(yearmonth = zoo::as.yearmon(pcp_2016_2025$Date, "%m/%d/%Y")) # "Feb 2024"
+pcp_2016_2025 <- pcp_2016_2025 %>% mutate(yearmonth = zoo::as.yearmon(pcp_2016_2025$Date, "%m/%d/%Y"), # shows as text "Feb 2024"
+                                          yearmonth_as_date =as.Date(as.yearmon(pcp_2016_2025$Date, "%m/%d/%Y")))  # "Feb 2024"
 
 # as.Date(as.yearmon(pcp_2016_2025$Date, "%m/%d/%Y")) # "2023-01-01" sets day to first day of month
 
@@ -196,7 +211,6 @@ pcp_2016_2025 <- pcp_2016_2025 %>% mutate(yearmonth = zoo::as.yearmon(pcp_2016_2
 
 # make table by Marshallese and Non-Hispanic white
 
-
 #colnames(pcp_2016_2025)
 pcp_2016_2025 <- pcp_2016_2025 %>% mutate(marsh = if_else((UniqueIdentifier %in% MarshalleseUniqueID), 1,
                                                       if_else((UniqueIdentifier %in% ControlUniqueID), 0, NA) ) ) %>%
@@ -205,55 +219,44 @@ pcp_2016_2025 <- pcp_2016_2025 %>% mutate(marsh = if_else((UniqueIdentifier %in%
 # which(is.na(pcp_2016_2025$marsh))
 
 pcp_2016_2025_year_marsh <- as.data.frame( with(pcp_2016_2025, table(year, marsh)) ) #, useNA = "always"
-pcp_2016_2025_yearmonth_marsh <-  as.data.frame( with(pcp_2016_2025, table(yearmonth, marsh)))
 
 
-#
-pcp_2016_2025_year_marsh %>% filter(year != 2025) %>%
-  ggplot(aes(x=year, y=Freq, group=marsh, color=marsh))+
-  geom_line()+
-  #facet_wrap(~marsh)+
-  labs(y="Count", x="Time",
-  title = "Primary Care Provider Visits Rates for CHAS Patients by Year
-       \n Marshallese and Non-Hispanic White Patients \n Maple and Market Clinics") #+
-#scale_x_continuous(breaks=c(0,1,4,6))
+# Make tables wider
 
-pcp_2016_2025_year_marsh %>% filter(year != 2025) %>% # only one month into the year
-  filter(marsh == 1) %>%
-  ggplot(aes(x=year, y=Freq, group=marsh, color=marsh))+
-  geom_line()+
-  #facet_wrap(~marsh)+
-  labs(y="Count", x="Time",
-       title = "Primary Care Provider Visits Rates for CHAS Patients by Year
-       \n Marshallese Patients \n Maple and Market Clinics") #+
-#Whoo-hoo! Look at this one!
+
+pcp_2016_2025_year_marsh_wider <- pivot_wider(pcp_2016_2025_year_marsh,
+                                            names_from = year,
+                                            values_from = Freq)
+
+
+pcp_2016_2025_year_marsh_wider <- as.data.frame(pcp_2016_2025_year_marsh_wider)
+rownames(pcp_2016_2025_year_marsh_wider) <- c("Marshallese", "Non-Hispanic White")
+pcp_2016_2025_year_marsh_wider <- pcp_2016_2025_year_marsh_wider[ , -1] # removing marsh column so just dates
 
 
 
 
+# By Month
+#pcp_2016_2025_yearmonth_marsh <-  as.data.frame( with(pcp_2016_2025, table(yearmonth, marsh)))
+
+pcp_2016_2025_yearmonth_marsh <-  as.data.frame( with(pcp_2016_2025, table(yearmonth_as_date, marsh)))
 
 
-######################
-# ! Move to top of script? 
-# create table for all visit types
-colnames(all_visit_types)
+pcp_2016_2025_yearmonth_marsh_wider <- pivot_wider(pcp_2016_2025_yearmonth_marsh, 
+                                                 names_from = yearmonth_as_date, 
+                                                 values_from = Freq)
 
-#colnames(ER2016_2025)
-all_visit_types <- all_visit_types %>% mutate(marsh = if_else((UniqueIdentifier %in% MarshalleseUniqueID), 1,
-                                                      if_else((UniqueIdentifier %in% ControlUniqueID), 0, NA) ) )
 
-table_all_visit_types <- as.data.frame( with(all_visit_types, table(ServiceLine,year, marsh)) ) #, useNA = "always"
 
-# ! update when we get all of the Marshallese and White Unique IDs
+pcp_2016_2025_yearmonth_marsh_wider <- as.data.frame(pcp_2016_2025_yearmonth_marsh_wider)
+rownames(pcp_2016_2025_yearmonth_marsh_wider) <- c("Marshallese", "Non-Hispanic White")
+pcp_2016_2025_yearmonth_marsh_wider <- pcp_2016_2025_yearmonth_marsh_wider[ , -1] # removing marsh column so just dates
 
-table_all_visit_types_wider <- pivot_wider(table_all_visit_types,
-                                           names_from = year,
-                                           values_from = Freq)
 
-# export for final report
-write.csv(table_all_visit_types_wider, "table_all_visit_types_wider.csv")
 
-# table_all_visit_types_wider <- t(table_all_visit_types_wider)
+
+
+
 
 # figure out how many races we are missing
 colnames(panel)
@@ -282,14 +285,6 @@ class(all_visit_types_2016_2021$Date)
 all_visit_types$Date <- as.Date(all_visit_types$Date, format = "%m/%d/%Y")
 
 class(all_visit_types$Date)
-# visualize how long M patients have been there
-all_visit_types %>% filter(UniqueIdentifier %in% MarshalleseUniqueID ) %>% mutate(extra = if_else((year %in% 2016:2020), 1, 0, NA)) %>%  
-  # arrange(extra, UniqueIdentifier) %>%  this worked to move them all to the top but it also made shifts in the lines that weren't as clear
-  # mutate(Row_Number = row_number()) %>% 
-  # y = Row_Number
-  ggplot(aes(x = Date, y = UniqueIdentifier, group = UniqueIdentifier, col = extra)) +
-  geom_line()
-
 # figure out how many races we are missing  - This was excluding the kids because we used panel.18! 
 # colnames(panel.18)
 # all_races <- panel.18 %>% select(UniqueID, KOHParticipant, Ethnicity, Race)
@@ -345,3 +340,4 @@ all_visit_types %>% filter(UniqueIdentifier %in% MarshalleseUniqueID ) %>% mutat
 #   filter(!is.na(marsh))
 # Urgent2016_2025_year_marsh <-  as.data.frame( with(Urgent2016_2025, table(year, marsh)))  # , useNA = "always"
 # 
+
