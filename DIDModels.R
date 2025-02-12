@@ -52,15 +52,60 @@ all_visit_types_counts_per_quarter_marsh_SL <- all_visit_types_quarter %>%
 
 pretrendER <- all_visit_types_counts_per_quarter_marsh_SL %>% filter(ServiceLine == "Emergency")
 
+pretrendPCP <- all_visit_types_counts_per_quarter_marsh_SL %>% filter(ServiceLine == "Primary Care")
+
 pretrend <- all_visit_types_quarter %>% filter( Date >= "2017-01-01", Date <= "2019-05-31" ) %>% group_by(quarter, marsh) %>% count()
+colnames(pretrend)[3] <- c("total_visits")
+
+# Stopped here ! 
+  pretrend <- full_join(pretrend, pretrendER )  # add all total patient visits that quarter to 
+# will join by quarter and marsh
+
+# Create ER rate 
+  pretrend <- pretrend %>% mutate(PCPrate = n/total_visits)
+  
+# graph ER Pretrends  
+  pretrend %>%  filter(quarter > 2017.2) %>%
+    ggplot(aes(x = quarter, y = PCPrate*100, group = as.factor(marsh), color = as.factor(marsh)))+
+    geom_line()+
+   ylim(c(0,50))+
+    labs(y="Rate per 100 patient", x="Year",
+         title = "Pretrends Emergency Room Visits Rates for CHAS Patients by Quarter
+       \n Marshallese and Non-Hispanic White Patients \n Maple and Market Clinics")
+  
+  
+  
+  
+  
+  pretrend2 <- all_visit_types_quarter %>% filter( Date >= "2017-01-01", Date <= "2019-05-31" ) %>% group_by(quarter, marsh) %>% count()
+  colnames(pretrend2)[3] <- c("total_visits")
+  
+  colnames(pretrendPCP)[4] <- c("PCP")
+
+  colnames(pretrendPCP)[3] <- c("ServiceLinePCP")
+  pretrend2 <- full_join(pretrend2, pretrendPCP )  # add all total patient visits that quarter to 
+  
+pretrend2 <- pretrend2 %>% mutate(PCPrate = PCP/total_visits)
+
+#plot ER trends
+pretrend2 %>%  filter(quarter > 2018) %>%
+  ggplot(aes(x = quarter, y = PCPrate*100, group = as.factor(marsh), color = as.factor(marsh)))+
+  geom_line()+
+  ylim(c(0,50))+
+  labs(y="Rate per 100 patient", x="Year",
+       title = "Pretrends Primary Care Provider Visits Rates for CHAS Patients by Quarter
+       \n Marshallese and Non-Hispanic White Patients  \n Maple and Market Clinics")
 
 
-#Stopped here ! pretrend <- full_join(pretrend,  )  # add all total patient visits that quarter to 
-# should join by quarter and marsh
-
-
-
-
+# plot PCP pretrends
+pretrend2 %>%  filter(quarter > 2018) %>%
+  ggplot(aes(x = quarter, y = PCPrate, group = as.factor(marsh), color = as.factor(marsh)))+
+  geom_line()+
+  ylim(c(0,0.5))+
+  labs(y="Rate per patient", x="Year",
+       title = "Pretrends Primary Care Provider Visits Rates for CHAS Patients by Year
+       \n Marshallese Patients \n Maple and Market Clinics")
+  
 
 
 # need to find out how many patients were there in the beginning and end of DID
