@@ -35,14 +35,36 @@ targetpop_DID <- read.csv(fp_tarpop)
 # group by quarter
 # test <- lubridate::quarter(all_visit_types$Date, with_year = TRUE)
 # the quarter is given by 2017.1 for first quarter, 2017.2 for 2nd quarter, ... 2017.4 for last quarter of the year
+with(all_visit_types, table(marsh, useNA = "always"))
+check <- all_visit_types %>% filter(is.na(marsh))
 
+
+all_visit_types <- all_visit_types %>% filter(!is.na(marsh))
 all_visit_types_quarter <- all_visit_types %>% mutate(quarter = quarter(Date, with_year = TRUE)) 
 
-all_visit_types_counts_per_quarter <- all_visit_types_quarter %>% group_by(quarter) %>% count()
+# all_visit_types_counts_per_quarter <- all_visit_types_quarter %>% group_by(quarter) %>% count()
+with(all_visit_types_counts_per_quarter_marsh_SL, table(marsh, useNA = "always"))
+
+all_visit_types_counts_per_quarter_marsh_SL <- all_visit_types_quarter %>% 
+  filter( Date >= "2017-01-01", Date <= "2019-05-31" ) %>% 
+  group_by(quarter, marsh, ServiceLine) %>% 
+  count()
+
+pretrendER <- all_visit_types_counts_per_quarter_marsh_SL %>% filter(ServiceLine == "Emergency")
+
+pretrend <- all_visit_types_quarter %>% filter( Date >= "2017-01-01", Date <= "2019-05-31" ) %>% group_by(quarter, marsh) %>% count()
+
+
+#Stopped here ! pretrend <- full_join(pretrend,  )  # add all total patient visits that quarter to 
+# should join by quarter and marsh
+
+
+
 
 
 
 # need to find out how many patients were there in the beginning and end of DID
+
 
 
 panel_balance <- function(start_date, end_date, Service) {
@@ -62,28 +84,49 @@ panel_balance <- function(start_date, end_date, Service) {
 
 # I run the two time period and compare 
 
-pretest <- panel_balance(start_date = "2019-06-01", end_date = "2019-08-31", Service = "Emergency")
-posttest <- panel_balance(start_date = "2022-06-01", end_date = "2022-08-31", Service = "Emergency")
+pretest_ER_qt <- panel_balance(start_date = "2019-06-01", end_date = "2019-08-31", Service = "Emergency")
+posttest_ER_qt <- panel_balance(start_date = "2022-06-01", end_date = "2022-08-31", Service = "Emergency")
 
-length(intersect(pretest$UniqueIDMarsh, posttest$UniqueIDMarsh))
+length(intersect(pretest_ER_qt$UniqueIDMarsh, posttest_ER_qt$UniqueIDMarsh))
 # 9 
 
-length(intersect(pretest$UniqueIDNHW, posttest$UniqueIDNHW))
+length(intersect(pretest_ER_qt$UniqueIDNHW, posttest_ER_qt$UniqueIDNHW))
 # 590
 
+pretest_PCP_qt <- panel_balance(start_date = "2019-06-01", end_date = "2019-08-31", Service = "Primary Care")
+posttest_PCP_qt <- panel_balance(start_date = "2022-06-01", end_date = "2022-08-31", Service = "Primary Care")
+
+length(intersect(pretest_PCP_qt$UniqueIDMarsh, posttest_PCP_qt$UniqueIDMarsh))
+# 17 
+
+length(intersect(pretest_PCP_qt$UniqueIDNHW, posttest_PCP_qt$UniqueIDNHW))
+# 2092
+
+# any service line
+panel_balance_any <- function(start_date, end_date) { # , Service
+  pretreat <- all_visit_types %>% filter( Date >= {{start_date}}, Date <= {{end_date}} ) # , ServiceLine == {{Service}}
+  
+  marsh <- pretreat %>% filter(marsh == 1) 
+  UniqueIDMarsh <- unique(marsh$UniqueIdentifier)
+  NHW <- pretreat %>% filter(marsh == 0) 
+  UniqueIDNHW <- unique(NHW$UniqueIdentifier)
+  return(list(NHW_count = length(unique(NHW$UniqueIdentifier)), 
+              Marsh_count = length(unique(marsh$UniqueIdentifier)), 
+              total_count =   length(unique(pretreat$UniqueIdentifier)),
+              UniqueIDMarsh = UniqueIDMarsh, 
+              UniqueIDNHW = UniqueIDNHW))
+}
+
+pretest_yr <- panel_balance_any(start_date = "2018-08-31", end_date = "2019-08-31") # , Service = .
+posttest_yr <- panel_balance_any(start_date = "2021-08-31", end_date = "2022-08-31") # , Service = .
+
+length(intersect(pretest_yr$UniqueIDMarsh, posttest_yr$UniqueIDMarsh))
+# 154 Marshallese got any services during both pre and post DID times
+
+length(intersect(pretest_yr$UniqueIDNHW, posttest_yr$UniqueIDNHW))
+# 10405 NHW got any services during both  pre and post DID times
 
 
-test <- pretreat %>% filter(marsh == 1) 
-nrow(test)
-
-test2 <- posttreat %>% filter(marsh == 1) 
-nrow(test2)
-
-test3 <- pretreat %>% filter(marsh == 0) 
-nrow(test3)
-
-test4 <- posttreat %>% filter(marsh == 0) 
-nrow(test4)
 
 
 
