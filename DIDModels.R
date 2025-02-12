@@ -1,10 +1,10 @@
 # DID Models
+#rm(list = ls())
 library(tidyverse)
 library(lubridate)
 library(zoo)
 library(rstudioapi)
 library(did)
-
 
 # Import dataframes DataCleaningDID.R script
 
@@ -23,159 +23,28 @@ targetpop_DID <- read.csv(fp_tarpop)
 # 
 # Marshallese <- targetpop_DID %>% filter(Race == 'Marshallese' | Language == 'Marshallese'| KOHParticipant == 1) #
 # MarshalleseUniqueID <- Marshallese$UniqueID
+# # length(MarshalleseUniqueID)
+# # 4824 repeated uniqueID for multiple visits
 # 
+# length(unique(MarshalleseUniqueID))
 # 
 # Control <- targetpop_DID %>% filter((Race == 'White' & Ethnicity == 'Not Hispanic or Latino'))
 # ControlUniqueID <- Control$UniqueID
+# #length(ControlUniqueID)
+# # 136022
+# length(unique(ControlUniqueID))
+# # 25616
 
 
 
+######################################################
+########## BUILD DATA FRAME FOR DID ##################
+######################################################
 
-# for pretrends
-# group by quarter
-# test <- lubridate::quarter(all_visit_types$Date, with_year = TRUE)
-# the quarter is given by 2017.1 for first quarter, 2017.2 for 2nd quarter, ... 2017.4 for last quarter of the year
-with(all_visit_types, table(marsh, useNA = "always"))
-check <- all_visit_types %>% filter(is.na(marsh))
-
-
-all_visit_types <- all_visit_types %>% filter(!is.na(marsh))
-all_visit_types_quarter <- all_visit_types %>% mutate(quarter = quarter(Date, with_year = TRUE)) 
-
-# all_visit_types_counts_per_quarter <- all_visit_types_quarter %>% group_by(quarter) %>% count()
-with(all_visit_types_counts_per_quarter_marsh_SL, table(marsh, useNA = "always"))
-
-all_visit_types_counts_per_quarter_marsh_SL <- all_visit_types_quarter %>% 
-  filter( Date >= "2017-01-01", Date <= "2019-05-31" ) %>% 
-  group_by(quarter, marsh, ServiceLine) %>% 
-  count()
-
-pretrendER <- all_visit_types_counts_per_quarter_marsh_SL %>% filter(ServiceLine == "Emergency")
-
-pretrendPCP <- all_visit_types_counts_per_quarter_marsh_SL %>% filter(ServiceLine == "Primary Care")
-
-pretrend <- all_visit_types_quarter %>% filter( Date >= "2017-01-01", Date <= "2019-05-31" ) %>% group_by(quarter, marsh) %>% count()
-colnames(pretrend)[3] <- c("total_visits")
-
-# 
-  pretrend <- full_join(pretrend, pretrendER )  # add all total patient visits that quarter to 
-# will join by quarter and marsh
-
-# Create ER rate 
-  pretrend <- pretrend %>% mutate(PCPrate = n/total_visits)
-  
-  
-  write.csv(pretrend, "pretrend.csv")
-# 
-  graph ER Pretrends  
-
-  
-  #plot ER trends
-  pretrend %>%  filter(quarter > 2017.2) %>%
-    ggplot(aes(x = quarter, y = PCPrate*100, group = as.factor(marsh), color = as.factor(marsh)))+
-    geom_line()+
-   ylim(c(0,50))+
-    labs(y="Rate per 100 patient", x="Year",
-         title = "Pretrends Emergency Room Visits Rates for CHAS Patients by Quarter
-       \n Marshallese and Non-Hispanic White Patients \n Maple and Market Clinics")
-  
-  
-  
-  
-  
-  pretrend2 <- all_visit_types_quarter %>% filter( Date >= "2017-01-01", Date <= "2019-05-31" ) %>% group_by(quarter, marsh) %>% count()
-  colnames(pretrend2)[3] <- c("total_visits")
-  
-  colnames(pretrendPCP)[4] <- c("PCP")
-
-  colnames(pretrendPCP)[3] <- c("ServiceLinePCP")
-  pretrend2 <- full_join(pretrend2, pretrendPCP )  # add all total patient visits that quarter to 
-  
-pretrend2 <- pretrend2 %>% mutate(PCPrate = PCP/total_visits)
-
-
-# plot PCP pretrends
-pretrend2 %>%  filter(quarter > 2018) %>%
-  ggplot(aes(x = quarter, y = PCPrate*100, group = as.factor(marsh), color = as.factor(marsh)))+
-  geom_line()+
-  ylim(c(0,50))+
-  labs(y="Rate per 100 patient", x="Year",
-       title = "Pretrends Primary Care Provider Visits Rates for CHAS Patients by Quarter
-       \n Marshallese and Non-Hispanic White Patients  \n Maple and Market Clinics")
-
-
-
-# need to find out how many patients were there in the beginning and end of DID
-
-
-
-panel_balance <- function(start_date, end_date, Service) {
-  pretreat <- all_visit_types %>% filter( Date >= {{start_date}}, Date <= {{end_date}} , 
-                                          ServiceLine == {{Service}})
-
-  marsh <- pretreat %>% filter(marsh == 1) 
-  UniqueIDMarsh <- unique(marsh$UniqueIdentifier)
-  NHW <- pretreat %>% filter(marsh == 0) 
-  UniqueIDNHW <- unique(NHW$UniqueIdentifier)
-  return(list(NHW_count = length(unique(NHW$UniqueIdentifier)), 
-              Marsh_count = length(unique(marsh$UniqueIdentifier)), 
-              total_count =   length(unique(pretreat$UniqueIdentifier)),
-              UniqueIDMarsh = UniqueIDMarsh, 
-              UniqueIDNHW = UniqueIDNHW))
-}
-
-# I run the two time period and compare 
-
-pretest_ER_qt <- panel_balance(start_date = "2019-06-01", end_date = "2019-08-31", Service = "Emergency")
-posttest_ER_qt <- panel_balance(start_date = "2022-06-01", end_date = "2022-08-31", Service = "Emergency")
-
-length(intersect(pretest_ER_qt$UniqueIDMarsh, posttest_ER_qt$UniqueIDMarsh))
-# 9 
-
-length(intersect(pretest_ER_qt$UniqueIDNHW, posttest_ER_qt$UniqueIDNHW))
-# 590
-
-pretest_PCP_qt <- panel_balance(start_date = "2019-06-01", end_date = "2019-08-31", Service = "Primary Care")
-posttest_PCP_qt <- panel_balance(start_date = "2022-06-01", end_date = "2022-08-31", Service = "Primary Care")
-
-length(intersect(pretest_PCP_qt$UniqueIDMarsh, posttest_PCP_qt$UniqueIDMarsh))
-# 17 
-
-length(intersect(pretest_PCP_qt$UniqueIDNHW, posttest_PCP_qt$UniqueIDNHW))
-# 2092
-
-# any service line
-panel_balance_any <- function(start_date, end_date) { # , Service
-  pretreat <- all_visit_types %>% filter( Date >= {{start_date}}, Date <= {{end_date}} ) # , ServiceLine == {{Service}}
-  
-  marsh <- pretreat %>% filter(marsh == 1) 
-  UniqueIDMarsh <- unique(marsh$UniqueIdentifier)
-  NHW <- pretreat %>% filter(marsh == 0) 
-  UniqueIDNHW <- unique(NHW$UniqueIdentifier)
-  return(list(NHW_count = length(unique(NHW$UniqueIdentifier)), 
-              Marsh_count = length(unique(marsh$UniqueIdentifier)), 
-              total_count =   length(unique(pretreat$UniqueIdentifier)),
-              UniqueIDMarsh = UniqueIDMarsh, 
-              UniqueIDNHW = UniqueIDNHW))
-}
-
-pretest_yr <- panel_balance_any(start_date = "2018-08-31", end_date = "2019-08-31") # , Service = .
-posttest_yr <- panel_balance_any(start_date = "2021-08-31", end_date = "2022-08-31") # , Service = .
-
-length(intersect(pretest_yr$UniqueIDMarsh, posttest_yr$UniqueIDMarsh))
-# 154 Marshallese got any services during both pre and post DID times
-
-length(intersect(pretest_yr$UniqueIDNHW, posttest_yr$UniqueIDNHW))
-# 10405 NHW got any services during both  pre and post DID times
-
-
-
-
-
-
-# who was there in June, July and Aug 2019 (pre-treatment)
+# Mark who was there in June, July and Aug 2019 (pre-treatment)
 colnames(all_visit_types)
 class(all_visit_types$Date)
+
 # test <- all_visit_types_quarter %>% filter(Date >= "2017-01-01", Date <= "2017-01-31")
 
 
@@ -187,6 +56,10 @@ test <- pretreat %>% filter(marsh == 1,
 nrow(test)
 # 58 Marshallese Visited ER in the pretreat quarter
 # !check this number against my yearmonth table to make sure I did it right
+
+
+
+
 
 test <- pretreat %>% filter(marsh == 0, 
                             ServiceLine == "Emergency") 
@@ -206,7 +79,7 @@ test <- posttreat %>% filter(marsh == 0,
                             ServiceLine == "Emergency") 
 nrow(test)
 #4394
-
+# ! Are these unique?
 
 
 # set up rates for DID pretends and to estimate
@@ -251,10 +124,20 @@ colnames(pop_size_year) <- c(2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024)
 
 
 
+# can add the option to go forward 1 year with lubridate 
+library(lubridate)
+pop_size <- function(marsh0_or_1, start_date) {
+  x <- all_visit_types %>% filter(marsh == {{marsh0_or_1}}) %>% filter(Date >= {{start_date}}, 
+                                                                       Date <= {{start_date + %m% years(1)}})  # this should have the filter be 1 year more than our start data according to stack overflow
+  z<- length(unique(x$UniqueIdentifier))
+  return(z)
+}
+
 
 
 # look at pretrends. Per Ting we don't need to analyze the pre-treatment time periods formally 
-#but looking at the two trends is a good indicaotr if they are stable
+#but looking at the two trends is a good indicator if they are stable
+ # see separate DIDParallelTrends.R script to show they are stable
 
 
 
@@ -350,4 +233,5 @@ ER2016_2025_year_marsh %>% filter(year != 2025) %>% # !note that 2025 is only ju
 
 
 
-# !! How to we account for correlation with longitutindal data  
+# How to we account for correlation with longitutindal data  
+# using unbalanced panel in the DID package

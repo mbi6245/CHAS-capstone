@@ -3,7 +3,7 @@
 library(tidyverse)
 library(lubridate)
 library(zoo)
-library(rstudioapi)
+library(rstudioapi) # for file path? 
 
 # Demographics #
 ######################
@@ -245,7 +245,7 @@ length(unique(ControlUniqueID))
 
 
 
-
+write.csv(targetpop_DID, "targetpop_DID.csv")
 
 
 
@@ -356,11 +356,16 @@ class(all_visit_types$Date)
 
 
 
-############# Create table for all visit types ##############
+############# Create table for all visit types for our targetpop_DID ##############
 # colnames(all_visit_types)
 
 all_visit_types <- all_visit_types %>% mutate(marsh = if_else((UniqueIdentifier %in% MarshalleseUniqueID), 1,
                                                               if_else((UniqueIdentifier %in% ControlUniqueID), 0, NA) ) )
+
+
+
+write.csv(all_visit_types, "all_visit_types.csv")
+
 
 table_all_visit_types <- as.data.frame( with(all_visit_types, table(ServiceLine,year, marsh)) ) #, useNA = "always"
 

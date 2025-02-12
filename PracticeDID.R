@@ -6,14 +6,16 @@ data(mpdta)
 # mpdta is a balanced panel with 2500 observations
 head(mpdta)
 colnames(mpdta)
-# "year"        2003-2007?
+# "year"        2003-2007
 # "countyreal" county identifier
 # "lpop"       log population
 # "lemp"      log teen employment
 # "first.treat" first treatment or subsequent treatment
 # "treat"      treatment tx group 
 
-# 
+
+# To really evaluate the effect of the minimum wage on teen employment, one would need to be more careful along a number of dimensions. Thus, results displayed here should be interpreted as illustrative only.
+# # 
 # Data Requirements
 # 
 # In particular applications, the dataset should look like this with the key parts being:
@@ -102,21 +104,32 @@ summary(mw.attgt.X)
 # from Ting's slides
 
 # Tin'gs slides call for a subset of mpdta, but I don't know which subset 
+# from what is needed I assume it is 2003 and 2004, and this worked to get the same results
+mpdta.sub <- mpdta %>% filter(year >= 2003, year <=2004)
 
-mpdta.sub <- mpdta %>% mutate(after.treat = 1*(year >= first.treat))
+
+mpdta.sub <- mpdta.sub %>% mutate(after.treat = 1*(year >= first.treat))
 # hand-coded DID
 mean(with(mpdta.sub, lemp[first.treat == 2004 & year == 2003])) - 
   mean(with(mpdta.sub, lemp[first.treat == 2004 & year == 2004])) - 
   mean(with(mpdta.sub, lemp[first.treat == 0 & year == 2004]))+
   mean(with(mpdta.sub, lemp[first.treat == 0 & year == 2003]))
 
-# [1] 0.1357633
+
+# [1] 0.1357633 
+# ! supposed to be -0.0105...
+
+mean(with(dat, outcome[pretreat_tx_group])) - 
+  mean(with(dat, outcome[posttreat_tx_group])) - 
+  mean(with(dat, outcome[posttreat_ct_group]))+
+  mean(with(dat, outcome[pretreat_ct_group]))
 
 
 
-#TWFE version 
+
+#TWFE version (Two way Fixed Effects Model)
 twfe_sub <- lm(lemp ~ first.treat + after.treat, data = mpdta.sub)
-
+twfe_sub
 
 # cluster-robust variance estimator with CR2 small-sample correction 
 library(clubSandwich)
@@ -131,6 +144,11 @@ coeftest.twfe
 #   after.treat 0.124789 9.71e-02   1.28         170      0.20061     
 
 # non-significant p-value
+
+coeftest.twfe[3, ] # to get after treatment effect
+# estimate should be the same as above
+
+
 
 ########################################
 # Our project 
