@@ -57,15 +57,20 @@ pretrendPCP <- all_visit_types_counts_per_quarter_marsh_SL %>% filter(ServiceLin
 pretrend <- all_visit_types_quarter %>% filter( Date >= "2017-01-01", Date <= "2019-05-31" ) %>% group_by(quarter, marsh) %>% count()
 colnames(pretrend)[3] <- c("total_visits")
 
-# Stopped here ! 
+# 
   pretrend <- full_join(pretrend, pretrendER )  # add all total patient visits that quarter to 
 # will join by quarter and marsh
 
 # Create ER rate 
   pretrend <- pretrend %>% mutate(PCPrate = n/total_visits)
   
-# graph ER Pretrends  
-#plot ER trends
+  
+  write.csv(pretrend, "pretrend.csv")
+# 
+  graph ER Pretrends  
+
+  
+  #plot ER trends
   pretrend %>%  filter(quarter > 2017.2) %>%
     ggplot(aes(x = quarter, y = PCPrate*100, group = as.factor(marsh), color = as.factor(marsh)))+
     geom_line()+
