@@ -65,6 +65,7 @@ colnames(pretrend)[3] <- c("total_visits")
   pretrend <- pretrend %>% mutate(PCPrate = n/total_visits)
   
 # graph ER Pretrends  
+#plot ER trends
   pretrend %>%  filter(quarter > 2017.2) %>%
     ggplot(aes(x = quarter, y = PCPrate*100, group = as.factor(marsh), color = as.factor(marsh)))+
     geom_line()+
@@ -87,7 +88,8 @@ colnames(pretrend)[3] <- c("total_visits")
   
 pretrend2 <- pretrend2 %>% mutate(PCPrate = PCP/total_visits)
 
-#plot ER trends
+
+# plot PCP pretrends
 pretrend2 %>%  filter(quarter > 2018) %>%
   ggplot(aes(x = quarter, y = PCPrate*100, group = as.factor(marsh), color = as.factor(marsh)))+
   geom_line()+
@@ -96,16 +98,6 @@ pretrend2 %>%  filter(quarter > 2018) %>%
        title = "Pretrends Primary Care Provider Visits Rates for CHAS Patients by Quarter
        \n Marshallese and Non-Hispanic White Patients  \n Maple and Market Clinics")
 
-
-# plot PCP pretrends
-pretrend2 %>%  filter(quarter > 2018) %>%
-  ggplot(aes(x = quarter, y = PCPrate, group = as.factor(marsh), color = as.factor(marsh)))+
-  geom_line()+
-  ylim(c(0,0.5))+
-  labs(y="Rate per patient", x="Year",
-       title = "Pretrends Primary Care Provider Visits Rates for CHAS Patients by Year
-       \n Marshallese Patients \n Maple and Market Clinics")
-  
 
 
 # need to find out how many patients were there in the beginning and end of DID
