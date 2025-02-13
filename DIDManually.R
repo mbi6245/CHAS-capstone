@@ -291,8 +291,37 @@ summary(PCP_lm)
 # should give 3 coefficients for pre and post NHW and pre and post M,
 # we want to know if the interaction term (the coef for postMarsh) if significant
 
+###
+
+# Trying something different
+
+did_visit_types <- did_visit_types %>% mutate(ER = if_else(ServiceLine == "Emergency", 1, 0), 
+                           PCP = if_else(ServiceLine == "Primary Care", 1, 0))
 
 
+attempt2 <- lm(ER ~ marsh*year  , data = did_visit_types)
+summary(attempt2)
+
+
+# Call:
+#   lm(formula = ER ~ marsh * year, data = did_visit_types)
+# 
+# Residuals:
+#   Min      1Q  Median      3Q     Max 
+# -0.2348 -0.1762 -0.1417 -0.1417  0.9219 
+# 
+# Coefficients:
+#   Estimate Std. Error t value Pr(>|t|)    
+# (Intercept) 23.391612   2.255812  10.369  < 2e-16 ***
+#   marsh       82.331210  17.495453   4.706 2.53e-06 ***
+#   year        -0.011498   0.001116 -10.301  < 2e-16 ***
+#   marsh:year  -0.040749   0.008655  -4.708 2.51e-06 ***
+#   ---
+#   Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+# 
+# Residual standard error: 0.3599 on 50600 degrees of freedom
+# Multiple R-squared:  0.003156,	Adjusted R-squared:  0.003097 
+# F-statistic: 53.39 on 3 and 50600 DF,  p-value: < 2.2e-16
 
 
 
@@ -304,22 +333,77 @@ summary(PCP_lm)
 
 # to use DID package
 
-idname = "UniqueIdentifier" # each observation
-gname = "marsh" # group name, first.treat
-tname = "year" # time name
-yname = "RateER" # outcome name
-xformla = ~1 # we will not condition on any other covariates, or leave blank
-allow_unbalanced_panel = TRUE, 
+
+mw.attgt <- att_gt( yname = "ER", # outcome name
+                    idname = "UniqueIdentifier", # each observation
+                   # gname = , # group name, first.treat # we don't have groups varying over time like treated in 2003, 2004...
+                   tname = "year", # time name
+                   xformla = "marsh",
+                     #, # we will not condition on any other covariates, or leave blank
+                     # allow_unbalanced_panel = TRUE, # test standard DID without unbalanced first
+                   data = did_visit_types)
 
 
+
+mw.attgt <- att_gt( yname = "ER", # outcome name
+                  idname = "UniqueIdentifier", # each observation
+                   gname = "marsh", # group name, first.treat
+                   tname = "year", # time name
+                   xformla = ~, 
+                     #, # we will not condition on any other covariates, or leave blank
+                  # allow_unbalanced_panel = TRUE, # test standard DID without unbalanced first
+                  data = did_visit_types)
+
+# from DID package
 # estimate group-time average treatment effects on the treated without covariates
+
+# att_gt
+# Group-Time Average Treatment Effects
+# Description
+# att_gt computes average treatment effects in DID setups where there are more than two periods of
+# data and allowing for treatment to occur at different points in time and allowing for treatment effect
+# heterogeneity and dynamics. See Callaway and Sant’Anna (2021) for a detailed description
+
+# We don't want this one because we don't have groups varying over time 
 mw.attgt <- att_gt(yname = "lemp",
                    gname = "first.treat",
                    idname = "countyreal",
                    tname = "year",
                    xformla = ~1,
-                   data = mpdta,
-)
+                   data = mpdta,)
 
 
 
+did_visit_types <- did_visit_types %>% mutate(first.treat = if_else(marsh == 1, 2019, 0))
+
+
+# doesn't work with forcing a group name
+# mw.attgt <- att_gt( yname = "ER", # outcome name
+#                     idname = "UniqueIdentifier", # each observation
+#                     gname = "first.treat", # group name, first.treat it is the same as ever treated/marsh = 2019
+#                     tname = "year", # time name
+#                     xformla = ~ marsh, 
+#                     #, # we will not condition on any other covariates, or leave blank
+#                     # allow_unbalanced_panel = TRUE, # test standard DID without unbalanced first
+#                     data = did_visit_types)
+# # Error in pre_process_did(yname = yname, tname = tname, idname = idname,  : 
+# #                            No valid groups. The variable in 'gname' should be expressed as the time a unit is first treated (0 if never-treated).
+# #                          In addition: Warning messages:
+# #                            1: In pre_process_did(yname = yname, tname = tname, idname = idname,  :
+# #                                                    Dropped 315 units that were already treated in the first period.
+# #                                                  2: In pre_process_did(yname = yname, tname = tname, idname = idname,  :
+# #                                                                          Dropped 10949 observations while converting to balanced panel.
+
+
+# doesn't work without a group name.
+# 
+# mw.attgt <- att_gt( yname = "ER", # outcome name
+#                     +                     idname = "UniqueIdentifier", # each observation
+#                     +                    # gname = "first.treat", # group name, first.treat it is the same as ever treated/marsh = 2019
+#                       +                     tname = "year", # time name
+#                     +                     xformla = ~ marsh, 
+#                     +                     #, # we will not condition on any other covariates, or leave blank
+#                       +                     # allow_unbalanced_panel = TRUE, # test standard DID without unbalanced first
+#                       +                     data = did_visit_types)
+# Error in pre_process_did(yname = yname, tname = tname, idname = idname,  : 
+#                            data[, gname] must be numeric
