@@ -345,11 +345,11 @@ mw.attgt <- att_gt( yname = "ER", # outcome name
 
 
 
-mw.attgt <- att_gt( yname = "ER", # outcome name
+mw.attgt <- att_gt(yname = "ER", # outcome name
                   idname = "UniqueIdentifier", # each observation
                    gname = "marsh", # group name, first.treat
                    tname = "year", # time name
-                   xformla = ~, 
+                   xformla = ~1, 
                      #, # we will not condition on any other covariates, or leave blank
                   # allow_unbalanced_panel = TRUE, # test standard DID without unbalanced first
                   data = did_visit_types)
@@ -365,12 +365,12 @@ mw.attgt <- att_gt( yname = "ER", # outcome name
 # heterogeneity and dynamics. See Callaway and Sant’Anna (2021) for a detailed description
 
 # We don't want this one because we don't have groups varying over time 
-mw.attgt <- att_gt(yname = "lemp",
-                   gname = "first.treat",
-                   idname = "countyreal",
-                   tname = "year",
-                   xformla = ~1,
-                   data = mpdta,)
+mw.attgt <- att_gt(yname = "lemp", # the outcome is the log employment rate per county
+                   gname = "first.treat", # year the group was first treated, from 2003-2007, 0 for untreated
+                   idname = "countyreal", # unique identifier for county
+                   tname = "year", # the column with time
+                   xformla = ~1, # no additional covariates in the model
+                   data = mpdta)
 
 
 
@@ -378,9 +378,9 @@ did_visit_types <- did_visit_types %>% mutate(first.treat = if_else(marsh == 1, 
 
 
 # doesn't work with forcing a group name
-# mw.attgt <- att_gt( yname = "ER", # outcome name
-#                     idname = "UniqueIdentifier", # each observation
-#                     gname = "first.treat", # group name, first.treat it is the same as ever treated/marsh = 2019
+# mw.attgt <- att_gt( yname = "ER", # outcome name/ each row has 1 ER visit per patient in the time periods of interest
+#                     idname = "UniqueIdentifier", # each patient/observation has its own unique ID
+#                     gname = "first.treat", # group name, first.treat it is the same as ever treated/Marshallese = 2019
 #                     tname = "year", # time name
 #                     xformla = ~ marsh, 
 #                     #, # we will not condition on any other covariates, or leave blank
@@ -407,3 +407,26 @@ did_visit_types <- did_visit_types %>% mutate(first.treat = if_else(marsh == 1, 
 #                       +                     data = did_visit_types)
 # Error in pre_process_did(yname = yname, tname = tname, idname = idname,  : 
 #                            data[, gname] must be numeric
+
+# mw.attgt <- att_gt( yname = "ER", # outcome name/ each row has 1 ER visit per patient in the time periods of interest 
+                          # or 0 if the visit was another type of visit
+
+#                     idname = "UniqueIdentifier", # each patient/observation has its own unique ID
+
+#                     gname = "first.treat", # group name, first.treat it is the same as ever treated/Marshallese = 2019
+
+#                     tname = "year", # Year 2019 (pretreatment) or 2022 (post treatment)
+
+#                     xformla = ~ 1, # we will not condition on any other covariates, so leave blank
+
+#                     # allow_unbalanced_panel = TRUE, # test standard DID without unbalanced first
+
+#                     data = did_visit_types)
+# 
+# Error in pre_process_did(yname = yname, tname = tname, idname = idname,  : 
+#                            No valid groups. The variable in 'gname' should be expressed as the time a unit is first treated (0 if never-treated).
+#                          In addition: Warning messages:
+#                            1: In pre_process_did(yname = yname, tname = tname, idname = idname,  :
+#                                                    Dropped 315 units that were already treated in the first period.
+#                                                  2: In pre_process_did(yname = yname, tname = tname, idname = idname,  :
+#                                                                          Dropped 10949 observations while converting to balanced panel.
