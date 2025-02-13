@@ -50,9 +50,23 @@ panel_balance_any <- function(start_date, end_date) { # , Service
               UniqueIDNHW = UniqueIDNHW))
 }
 
+
 pretest_yr <- panel_balance_any(start_date = "2018-08-31", end_date = "2019-08-31") # , Service = .
 
 posttest_yr <- panel_balance_any(start_date = "2021-08-31", end_date = "2022-08-31") # , Service = .
+
+
+# population size for pretest year Marshallese
+pretest_yr$Marsh_count
+# population size for pretest year Non-Hispanic White
+pretest_yr$NHW_count
+
+# population size for post test year Marshallese
+posttest_yr$Marsh_count
+
+# population size for post test year Non-Hispanic White
+posttest_yr$NHW_count
+
 
 length(intersect(pretest_yr$UniqueIDMarsh, posttest_yr$UniqueIDMarsh))
 # 154 Marshallese got any services during both pre and post DID times
@@ -182,23 +196,100 @@ pre_ct_ER <- pretest_ER_qt$NHW_visits /   length(intersect(pretest_yr$UniqueIDNH
 # Average Treatement Effect on the Treated 
 # ER
 
+#(post_tx_ER - pre_tx_ER) - (post_ct_ER - pre_ct_ER)
 post_tx_ER - pre_tx_ER - post_ct_ER + pre_ct_ER
 # -0.0132173
 # a negative effect on those current patients ER rates, 
 
+
+
+
 #! is it significant?
 
-# need to boostrap confidence intervals or use equations
+# need to boostrap confidence intervals or use packages below
 
 
 
 
+# try with lm per https://diff.healthpolicydatascience.org/#regression
+
+# ER_df <- as.data.frame(rbind(c(pre_tx_ER, post_tx_ER, 1),
+#   c(pre_ct_ER, post_ct_ER, 0) ))
+# colnames(ER_df) <- c("pre", "post", "Marsh")
+# 
+# ER_lm <- lm(post ~ pre*Marsh, data = ER_df)
+# summary(ER_lm)
+# 
+# Call:
+# lm(formula = post ~ pre * Marsh, data = ER_df)
+# 
+# Residuals:
+#   ALL 2 residuals are 0: no residual degrees of freedom!
+#   
+#   Coefficients: (2 not defined because of singularities)
+# Estimate Std. Error t value Pr(>|t|)
+# (Intercept)   0.1740        NaN     NaN      NaN
+# pre           0.7965        NaN     NaN      NaN
+# Marsh             NA         NA      NA       NA
+# pre:Marsh         NA         NA      NA       NA
+# 
+# Residual standard error: NaN on 0 degrees of freedom
+# Multiple R-squared:      1,	Adjusted R-squared:    NaN 
+# F-statistic:   NaN on 1 and 0 DF,  p-value: NA
+
+
+# Try this! 
+# select PCP visits (or ER visits later)
+did_PCP <- did_visit_types %>% filter(ServiceLine == "Primary Care")
+
+# add total pop for each year, then mutate to create rate
+
+# tbdata = tbdata %>% mutate(roomNo = case_when(
+#   roomNo == "1" ~ 1,
+#   roomNo == "2" ~ 2,
+#   roomNo == "3+" ~ 3
+# ))
+
+
+# from beginning of script 
+# population size for pretest year Marshallese
+
+# population size for pretest year Non-Hispanic White
+
+
+# population size for post test year Marshallese
+
+
+# population size for post test year Non-Hispanic White
+
+
+did_PCP <- did_PCP %>% mutate(pop = case_when(
+  (year == 2019 & marsh == 1) ~ pretest_yr$Marsh_count,
+  (year == 2019 & marsh == 0) ~ pretest_yr$NHW_count,
+  (year == 2022 & marsh == 1) ~ posttest_yr$Marsh_count,
+  (year == 2022 & marsh == 0) ~  posttest_yr$NHW_count))
+
+did_PCP <- did_PCP %>% mutate(PCP_rate = 1/pop)
+
+sum(did_PCP$PCP_rate[did_PCP$marsh == 1 & did_PCP$year == 2019])
+# 0.4611399
+# is this right?
+did_PCP %>% filter(marsh == 1, year == 2019) %>% summarize(sum(PCP_rate))
+# same  
+
+# ! but pre_tx_pcp
+# [1] 0.5779221
 
 
 
 
+# do we average before or after? 
+# stopped here! 
 
-
+PCP_lm <- lm(PCP_rate ~ marsh*after.treat, data = did_PCP)
+summary(PCP_lm)
+# should give 3 coefficients for pre and post NHW and pre and post M,
+# we want to know if the interaction term (the coef for postMarsh) if significant
 
 
 
@@ -207,7 +298,7 @@ post_tx_ER - pre_tx_ER - post_ct_ER + pre_ct_ER
 
 #####################################################
 # can't do this with correlation of the unbalanced panel....
-# we need the DID pacakge
+# we need the DID package
 
 
 
