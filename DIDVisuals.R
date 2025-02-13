@@ -1,5 +1,15 @@
 # DID visualizations
 
+library(tidyverse)
+library(lubridate)
+library(zoo)
+library(rstudioapi)
+
+# do not run these yet! 
+# need to load data before we can make any of these graphs! 
+# I  didn't want to clutter the other R scripts with old graphs, 
+# But these are not ready to go yet
+
 ER2016_2025_yearmonth_marsh %>% #not wider version
   filter(yearmonth_as_date != "2025-01-01") %>% # the year just started
   ggplot(aes( x= as.Date(yearmonth_as_date), y = Freq, col = marsh )) +
@@ -53,4 +63,40 @@ all_visit_types %>% filter(UniqueIdentifier %in% MarshalleseUniqueID ) %>% mutat
   # y = Row_Number
   ggplot(aes(x = Date, y = UniqueIdentifier, group = UniqueIdentifier, col = extra)) +
   geom_line()
+
+
+
+
+
+########## Visualize Rates of ER visits ###########
+
+# create average number of ER visits per group. We need to divide each time periods number by the number of patients...
+
+
+# crude population size for total time
+# n_controls <- nrow(Control)
+# n_marsh <- nrow(Marshallese)
+# 
+# 
+# ER2016_2025_year_marsh <- ER2016_2025_year_marsh %>% mutate(pop_size = if_else((marsh == 1), n_marsh,
+#                                                                                if_else((marsh == 0),  n_controls, NA) ),
+#                                   rate = Freq/pop_size)
+
+
+# ! create rate per year by using changing population size...
+# ER2016_2025_year_marsh <- ER2016_2025_year_marsh %>% mutate(pop_size = ...
+
+ER2016_2025_year_marsh %>% filter(year != 2025) %>% # !note that 2025 is only just beginning so numbers are low
+  ggplot(aes(x=year, y=rate, group=marsh, color=marsh))+
+  geom_line()+
+  #facet_wrap(~marsh)+
+  labs(y="Count", x="Time", title = "Emergency Visits Rates for CHAS Patients by Year
+       \n Marshallese and Non-Hispanic White Patients \n Maple and Market Clinics") #+
+#scale_x_continuous(breaks=c(0,1,4,6))
+
+
+
+
+# y<- all_visit_types %>% filter(marsh == 1) %>% filter(year == 2017) 
+# length(unique(y$UniqueIdentifier))
 

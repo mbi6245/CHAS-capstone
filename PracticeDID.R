@@ -43,8 +43,7 @@ mw.attgt <- att_gt(yname = "lemp",
                    idname = "countyreal",
                    tname = "year",
                    xformla = ~1,
-                   data = mpdta,
-)
+                   data = mpdta)
 
 # summarize the results
 summary(mw.attgt)

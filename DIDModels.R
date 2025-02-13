@@ -41,160 +41,9 @@ targetpop_DID <- read.csv(fp_tarpop)
 ########## BUILD DATA FRAME FOR DID ##################
 ######################################################
 
-# Mark who was there in June, July and Aug 2019 (pre-treatment)
-colnames(all_visit_types)
-class(all_visit_types$Date)
-
-# test <- all_visit_types_quarter %>% filter(Date >= "2017-01-01", Date <= "2017-01-31")
-
-
-pretreat <- all_visit_types %>% filter( Date >= "2019-06-01", Date <= "2019-08-31" ) %>%
-  mutate(PreTreat = 1)
-
-test <- pretreat %>% filter(marsh == 1, 
-                    ServiceLine == "Emergency") 
-nrow(test)
-# 58 Marshallese Visited ER in the pretreat quarter
-# !check this number against my yearmonth table to make sure I did it right
-
-
-
-
-
-test <- pretreat %>% filter(marsh == 0, 
-                            ServiceLine == "Emergency") 
-nrow(test)
-# 3243 Control visited ER in the pretreat quarter
-
-
-# who was there in June, July and Aug 2022 (post-treatment)
-posttreat <- all_visit_types %>% filter( Date >= "2022-06-01", Date <= "2022-08-31" ) %>%
-  mutate(PostTreat = 1)
-
-test <- posttreat %>% filter(marsh == 1, 
-                            ServiceLine == "Emergency") 
-# 73
-
-test <- posttreat %>% filter(marsh == 0, 
-                            ServiceLine == "Emergency") 
-nrow(test)
-#4394
-# ! Are these unique?
-
-
-# set up rates for DID pretends and to estimate
-# We decided on # of Marshallese ER visits per quarter/ total Marshallese population per quarter
-# and  # of Marshallese ER visits per quarter/ total Marshallese population per year
-
-# !
-# make a function that lets me control the population size
-# need to divide by Marsh and NHW
-
-# !
-
-
-# old function
-pop_size <- function(marsh0_or_1, year) {
-  x <- all_visit_types %>% filter(marsh == {{marsh0_or_1}}) %>% filter(year == {{year}}) 
-  z<- length(unique(x$UniqueIdentifier))
-  return(z)
-}
-
-
-pop_size_marsh <- c(pop_size(1, 2017), # marshallese in 2017
-                    pop_size(1, 2018),  # marshallese in 2018...
-                    pop_size(1, 2019),
-                    pop_size(1, 2020),
-                    pop_size(1, 2021),
-                    pop_size(1, 2022),
-                    pop_size(1, 2023),
-                    pop_size(1, 2024))
-
-pop_size_white <- c(pop_size(0, 2017), # Non-Hisp white  in 2017
-                    pop_size(0, 2018),
-                    pop_size(0, 2019),
-                    pop_size(0, 2020),
-                    pop_size(0, 2021),
-                    pop_size(0, 2022),
-                    pop_size(0, 2023),
-                    pop_size(0, 2024))
-
-pop_size_year <- rbind(pop_size_marsh , pop_size_white)
-colnames(pop_size_year) <- c(2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024)
-
-
-
-# can add the option to go forward 1 year with lubridate 
-library(lubridate)
-pop_size <- function(marsh0_or_1, start_date) {
-  x <- all_visit_types %>% filter(marsh == {{marsh0_or_1}}) %>% filter(Date >= {{start_date}}, 
-                                                                       Date <= {{start_date + %m% years(1)}})  # this should have the filter be 1 year more than our start data according to stack overflow
-  z<- length(unique(x$UniqueIdentifier))
-  return(z)
-}
-
-
-
-# look at pretrends. Per Ting we don't need to analyze the pre-treatment time periods formally 
-#but looking at the two trends is a good indicator if they are stable
- # see separate DIDParallelTrends.R script to show they are stable
-
-
-
-
-
-
-
-
-
 
 
 # we will have some of the same patients who appear in both time frames, but more in the 2nd time period
-
-colnames(all_visit_types)
-
-
-
-########## Visualize Rates of ER visits ###########
-
-# create average number of ER visits per group. We need to divide each time periods number by the number of patients...
-
-
-# crude population size for total time
-# n_controls <- nrow(Control)
-# n_marsh <- nrow(Marshallese)
-# 
-# 
-# ER2016_2025_year_marsh <- ER2016_2025_year_marsh %>% mutate(pop_size = if_else((marsh == 1), n_marsh,
-#                                                                                if_else((marsh == 0),  n_controls, NA) ),
-#                                   rate = Freq/pop_size)
-
-
-# ! create rate per year by using changing population size...
-# ER2016_2025_year_marsh <- ER2016_2025_year_marsh %>% mutate(pop_size = ...
-
-ER2016_2025_year_marsh %>% filter(year != 2025) %>% # !note that 2025 is only just beginning so numbers are low
-  ggplot(aes(x=year, y=rate, group=marsh, color=marsh))+
-  geom_line()+
-  #facet_wrap(~marsh)+
-  labs(y="Count", x="Time", title = "Emergency Visits Rates for CHAS Patients by Year
-       \n Marshallese and Non-Hispanic White Patients \n Maple and Market Clinics") #+
-#scale_x_continuous(breaks=c(0,1,4,6))
-
-
-
-
-# y<- all_visit_types %>% filter(marsh == 1) %>% filter(year == 2017) 
-# length(unique(y$UniqueIdentifier))
-
-
-
-
-
-
-
-
-
 
 # and all Non-Hispanic White uniqueID for any type of appointment per year
 
@@ -208,7 +57,8 @@ ER2016_2025_year_marsh %>% filter(year != 2025) %>% # !note that 2025 is only ju
 
 # denominator from pop_size_year 
 
-#! Stopped here
+
+
 
 # Jan 2017 to Aug 2019 ER Pretrends (about 2.5 years)
 
@@ -235,3 +85,105 @@ ER2016_2025_year_marsh %>% filter(year != 2025) %>% # !note that 2025 is only ju
 
 # How to we account for correlation with longitutindal data  
 # using unbalanced panel in the DID package
+
+
+
+# to use DID package
+
+
+mw.attgt <- att_gt( yname = "ER", # outcome name
+                    idname = "UniqueIdentifier", # each observation
+                    # gname = , # group name, first.treat # we don't have groups varying over time like treated in 2003, 2004...
+                    tname = "year", # time name
+                    xformla = "marsh",
+                    #, # we will not condition on any other covariates, or leave blank
+                    # allow_unbalanced_panel = TRUE, # test standard DID without unbalanced first
+                    data = did_visit_types)
+
+
+
+mw.attgt <- att_gt(yname = "ER", # outcome name
+                   idname = "UniqueIdentifier", # each observation
+                   gname = "marsh", # group name, first.treat
+                   tname = "year", # time name
+                   xformla = ~1, 
+                   #, # we will not condition on any other covariates, or leave blank
+                   # allow_unbalanced_panel = TRUE, # test standard DID without unbalanced first
+                   data = did_visit_types)
+
+# from DID package
+# estimate group-time average treatment effects on the treated without covariates
+
+# att_gt
+# Group-Time Average Treatment Effects
+# Description
+# att_gt computes average treatment effects in DID setups where there are more than two periods of
+# data and allowing for treatment to occur at different points in time and allowing for treatment effect
+# heterogeneity and dynamics. See Callaway and Sant’Anna (2021) for a detailed description
+
+# We don't want this one because we don't have groups varying over time 
+mw.attgt <- att_gt(yname = "lemp", # the outcome is the log employment rate per county
+                   gname = "first.treat", # year the group was first treated, from 2003-2007, 0 for untreated
+                   idname = "countyreal", # unique identifier for county
+                   tname = "year", # the column with time
+                   xformla = ~1, # no additional covariates in the model
+                   data = mpdta)
+
+
+
+did_visit_types <- did_visit_types %>% mutate(first.treat = if_else(marsh == 1, 2019, 0))
+
+
+# doesn't work with forcing a group name
+# mw.attgt <- att_gt( yname = "ER", # outcome name/ each row has 1 ER visit per patient in the time periods of interest
+#                     idname = "UniqueIdentifier", # each patient/observation has its own unique ID
+#                     gname = "first.treat", # group name, first.treat it is the same as ever treated/Marshallese = 2019
+#                     tname = "year", # time name
+#                     xformla = ~ marsh, 
+#                     #, # we will not condition on any other covariates, or leave blank
+#                     # allow_unbalanced_panel = TRUE, # test standard DID without unbalanced first
+#                     data = did_visit_types)
+# # Error in pre_process_did(yname = yname, tname = tname, idname = idname,  : 
+# #                            No valid groups. The variable in 'gname' should be expressed as the time a unit is first treated (0 if never-treated).
+# #                          In addition: Warning messages:
+# #                            1: In pre_process_did(yname = yname, tname = tname, idname = idname,  :
+# #                                                    Dropped 315 units that were already treated in the first period.
+# #                                                  2: In pre_process_did(yname = yname, tname = tname, idname = idname,  :
+# #                                                                          Dropped 10949 observations while converting to balanced panel.
+
+
+# doesn't work without a group name.
+# 
+# mw.attgt <- att_gt( yname = "ER", # outcome name
+#                     +                     idname = "UniqueIdentifier", # each observation
+#                     +                    # gname = "first.treat", # group name, first.treat it is the same as ever treated/marsh = 2019
+#                       +                     tname = "year", # time name
+#                     +                     xformla = ~ marsh, 
+#                     +                     #, # we will not condition on any other covariates, or leave blank
+#                       +                     # allow_unbalanced_panel = TRUE, # test standard DID without unbalanced first
+#                       +                     data = did_visit_types)
+# Error in pre_process_did(yname = yname, tname = tname, idname = idname,  : 
+#                            data[, gname] must be numeric
+
+# mw.attgt <- att_gt( yname = "ER", # outcome name/ each row has 1 ER visit per patient in the time periods of interest 
+# or 0 if the visit was another type of visit
+
+#                     idname = "UniqueIdentifier", # each patient/observation has its own unique ID
+
+#                     gname = "first.treat", # group name, first.treat it is the same as ever treated/Marshallese = 2019
+
+#                     tname = "year", # Year 2019 (pretreatment) or 2022 (post treatment)
+
+#                     xformla = ~ 1, # we will not condition on any other covariates, so leave blank
+
+#                     # allow_unbalanced_panel = TRUE, # test standard DID without unbalanced first
+
+#                     data = did_visit_types)
+# 
+# Error in pre_process_did(yname = yname, tname = tname, idname = idname,  : 
+#                            No valid groups. The variable in 'gname' should be expressed as the time a unit is first treated (0 if never-treated).
+#                          In addition: Warning messages:
+#                            1: In pre_process_did(yname = yname, tname = tname, idname = idname,  :
+#                                                    Dropped 315 units that were already treated in the first period.
+#                                                  2: In pre_process_did(yname = yname, tname = tname, idname = idname,  :
+#                                                                          Dropped 10949 observations while converting to balanced panel.

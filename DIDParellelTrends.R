@@ -2,6 +2,9 @@
 # Yes generally parallel, but Unbalanced Panel (more patients came at the end)
 
 
+# look at pretrends. Per Ting we don't need to analyze the pre-treatment time periods formally 
+#but looking at the two trends is a good indicator if they are stable
+
 # don't want to actually test per Ting and others
 # But the test of parallel trends is neither necessary nor sufficient to establish validity of diff-in-diff (Kahn-Lang and Lang 2020)
 # https://diff.healthpolicydatascience.org/#regression

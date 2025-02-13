@@ -1,4 +1,20 @@
-# Run DID package
+# Run DID manually
+
+# Import dataframes DataCleaningDID.R script
+
+
+fp_visits = file.path(getwd(), "Analysis Data/all_visit_types.csv")
+all_visit_types <- read.csv(fp_visits) 
+# Mark Visit Types with Marshallese and NHW
+# all_visit_types  has M indicator from previous DataCleaningDID.R script, which shows 
+# 1 = marshallese, 0 = Non-Hispanic White, NA = Other not in our analysis)
+
+
+# fp_tarpop = file.path(getwd(), "Analysis Data/targetpop_DID.csv")
+# targetpop_DID <- read.csv(fp_tarpop) 
+# 
+
+
 
 # start building dataframe
 did_visit_types <- all_visit_types %>% filter(Date >= "2019-06-01", Date <= "2019-08-31"  | # pretreat
@@ -51,9 +67,10 @@ panel_balance_any <- function(start_date, end_date) { # , Service
 }
 
 
-pretest_yr <- panel_balance_any(start_date = "2018-08-31", end_date = "2019-08-31") # , Service = .
+pretest_yr <- panel_balance_any(start_date = "2018-08-31", end_date = "2019-08-31") # All service lines = total population
 
-posttest_yr <- panel_balance_any(start_date = "2021-08-31", end_date = "2022-08-31") # , Service = .
+posttest_yr <- panel_balance_any(start_date = "2021-08-31", end_date = "2022-08-31") # All service lines = total population
+
 
 
 # population size for pretest year Marshallese
@@ -112,13 +129,6 @@ posttest_ER_qt <- panel_balance(start_date = "2022-06-01", end_date = "2022-08-3
 
 
 
-
-
-
-
-
-
-
 ################ CALCULATE ##################
 ########## PCP ########
 # The post-intervention average of the treated group for E[Y(2)∣A=1];
@@ -158,7 +168,7 @@ post_tx_pcp - pre_tx_pcp - post_ct_pcp + pre_ct_pcp
 
 #! is it significant?
 
-# need to boostrap confidence intervals or use equations
+# need to bootstrap confidence intervals or use equations!
 
 
 
@@ -206,39 +216,13 @@ post_tx_ER - pre_tx_ER - post_ct_ER + pre_ct_ER
 
 #! is it significant?
 
-# need to boostrap confidence intervals or use packages below
+# need to bootstrap confidence intervals or use packages below!
 
 
 
 
-# try with lm per https://diff.healthpolicydatascience.org/#regression
 
-# ER_df <- as.data.frame(rbind(c(pre_tx_ER, post_tx_ER, 1),
-#   c(pre_ct_ER, post_ct_ER, 0) ))
-# colnames(ER_df) <- c("pre", "post", "Marsh")
-# 
-# ER_lm <- lm(post ~ pre*Marsh, data = ER_df)
-# summary(ER_lm)
-# 
-# Call:
-# lm(formula = post ~ pre * Marsh, data = ER_df)
-# 
-# Residuals:
-#   ALL 2 residuals are 0: no residual degrees of freedom!
-#   
-#   Coefficients: (2 not defined because of singularities)
-# Estimate Std. Error t value Pr(>|t|)
-# (Intercept)   0.1740        NaN     NaN      NaN
-# pre           0.7965        NaN     NaN      NaN
-# Marsh             NA         NA      NA       NA
-# pre:Marsh         NA         NA      NA       NA
-# 
-# Residual standard error: NaN on 0 degrees of freedom
-# Multiple R-squared:      1,	Adjusted R-squared:    NaN 
-# F-statistic:   NaN on 1 and 0 DF,  p-value: NA
-
-
-# Try this! 
+# Try this manually find averages to compare
 # select PCP visits (or ER visits later)
 did_PCP <- did_visit_types %>% filter(ServiceLine == "Primary Care")
 
@@ -283,17 +267,13 @@ did_PCP %>% filter(marsh == 1, year == 2019) %>% summarize(sum(PCP_rate))
 
 
 
-# do we average before or after? 
-# stopped here! 
+###
+# try with lm per https://diff.healthpolicydatascience.org/#regression
 
-PCP_lm <- lm(PCP_rate ~ marsh*after.treat, data = did_PCP)
-summary(PCP_lm)
+
+# do we average before or after? The LM output should give us the expected value/average of the groups
 # should give 3 coefficients for pre and post NHW and pre and post M,
 # we want to know if the interaction term (the coef for postMarsh) if significant
-
-###
-
-# Trying something different
 
 did_visit_types <- did_visit_types %>% mutate(ER = if_else(ServiceLine == "Emergency", 1, 0), 
                            PCP = if_else(ServiceLine == "Primary Care", 1, 0))
@@ -301,6 +281,9 @@ did_visit_types <- did_visit_types %>% mutate(ER = if_else(ServiceLine == "Emerg
 
 attempt2 <- lm(ER ~ marsh*year  , data = did_visit_types)
 summary(attempt2)
+# all significant! 
+
+
 
 
 # Call:
@@ -324,109 +307,131 @@ summary(attempt2)
 # F-statistic: 53.39 on 3 and 50600 DF,  p-value: < 2.2e-16
 
 
+attempt3 <- lm(PCP ~ marsh*year  , data = did_visit_types)
+summary(attempt3)
+# Marsh and Marsh:year are significantly different! 
+
+# Call:
+#   lm(formula = PCP ~ marsh * year, data = did_visit_types)
+# 
+# Residuals:
+#   Min      1Q  Median      3Q     Max 
+# -0.4018 -0.4018 -0.3980  0.5981  0.7925 
+# 
+# Coefficients:
+#   Estimate Std. Error t value Pr(>|t|)    
+# (Intercept)  -2.171018   3.061855  -0.709    0.478    
+# marsh       105.390815  23.746894   4.438 9.10e-06 ***
+#   year          0.001272   0.001515   0.840    0.401    
+# marsh:year   -0.052218   0.011748  -4.445 8.81e-06 ***
+#   ---
+#   Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+# 
+# Residual standard error: 0.4885 on 50600 degrees of freedom
+# Multiple R-squared:  0.002862,	Adjusted R-squared:  0.002803 
+# F-statistic: 48.41 on 3 and 50600 DF,  p-value: < 2.2e-16
 
 #####################################################
-# can't do this with correlation of the unbalanced panel....
-# we need the DID package
+# But can't do this with correlation of the unbalanced panel....
+# we need the DID package for that I think? 
+# see DIDModels.R ...
 
 
 
-# to use DID package
-
-
-mw.attgt <- att_gt( yname = "ER", # outcome name
-                    idname = "UniqueIdentifier", # each observation
-                   # gname = , # group name, first.treat # we don't have groups varying over time like treated in 2003, 2004...
-                   tname = "year", # time name
-                   xformla = "marsh",
-                     #, # we will not condition on any other covariates, or leave blank
-                     # allow_unbalanced_panel = TRUE, # test standard DID without unbalanced first
-                   data = did_visit_types)
 
 
 
-mw.attgt <- att_gt(yname = "ER", # outcome name
-                  idname = "UniqueIdentifier", # each observation
-                   gname = "marsh", # group name, first.treat
-                   tname = "year", # time name
-                   xformla = ~1, 
-                     #, # we will not condition on any other covariates, or leave blank
-                  # allow_unbalanced_panel = TRUE, # test standard DID without unbalanced first
-                  data = did_visit_types)
-
-# from DID package
-# estimate group-time average treatment effects on the treated without covariates
-
-# att_gt
-# Group-Time Average Treatment Effects
-# Description
-# att_gt computes average treatment effects in DID setups where there are more than two periods of
-# data and allowing for treatment to occur at different points in time and allowing for treatment effect
-# heterogeneity and dynamics. See Callaway and Sant’Anna (2021) for a detailed description
-
-# We don't want this one because we don't have groups varying over time 
-mw.attgt <- att_gt(yname = "lemp", # the outcome is the log employment rate per county
-                   gname = "first.treat", # year the group was first treated, from 2003-2007, 0 for untreated
-                   idname = "countyreal", # unique identifier for county
-                   tname = "year", # the column with time
-                   xformla = ~1, # no additional covariates in the model
-                   data = mpdta)
+#  who was there in June, July and Aug 2019 (pre-treatment). Made function above once I got it to work :)
+#
+# test <- all_visit_types_quarter %>% filter(Date >= "2017-01-01", Date <= "2017-01-31")
 
 
-
-did_visit_types <- did_visit_types %>% mutate(first.treat = if_else(marsh == 1, 2019, 0))
-
-
-# doesn't work with forcing a group name
-# mw.attgt <- att_gt( yname = "ER", # outcome name/ each row has 1 ER visit per patient in the time periods of interest
-#                     idname = "UniqueIdentifier", # each patient/observation has its own unique ID
-#                     gname = "first.treat", # group name, first.treat it is the same as ever treated/Marshallese = 2019
-#                     tname = "year", # time name
-#                     xformla = ~ marsh, 
-#                     #, # we will not condition on any other covariates, or leave blank
-#                     # allow_unbalanced_panel = TRUE, # test standard DID without unbalanced first
-#                     data = did_visit_types)
-# # Error in pre_process_did(yname = yname, tname = tname, idname = idname,  : 
-# #                            No valid groups. The variable in 'gname' should be expressed as the time a unit is first treated (0 if never-treated).
-# #                          In addition: Warning messages:
-# #                            1: In pre_process_did(yname = yname, tname = tname, idname = idname,  :
-# #                                                    Dropped 315 units that were already treated in the first period.
-# #                                                  2: In pre_process_did(yname = yname, tname = tname, idname = idname,  :
-# #                                                                          Dropped 10949 observations while converting to balanced panel.
-
-
-# doesn't work without a group name.
+# pretreat <- all_visit_types %>% filter( Date >= "2019-06-01", Date <= "2019-08-31" ) %>%
+#   mutate(PreTreat = 1)
 # 
-# mw.attgt <- att_gt( yname = "ER", # outcome name
-#                     +                     idname = "UniqueIdentifier", # each observation
-#                     +                    # gname = "first.treat", # group name, first.treat it is the same as ever treated/marsh = 2019
-#                       +                     tname = "year", # time name
-#                     +                     xformla = ~ marsh, 
-#                     +                     #, # we will not condition on any other covariates, or leave blank
-#                       +                     # allow_unbalanced_panel = TRUE, # test standard DID without unbalanced first
-#                       +                     data = did_visit_types)
-# Error in pre_process_did(yname = yname, tname = tname, idname = idname,  : 
-#                            data[, gname] must be numeric
-
-# mw.attgt <- att_gt( yname = "ER", # outcome name/ each row has 1 ER visit per patient in the time periods of interest 
-                          # or 0 if the visit was another type of visit
-
-#                     idname = "UniqueIdentifier", # each patient/observation has its own unique ID
-
-#                     gname = "first.treat", # group name, first.treat it is the same as ever treated/Marshallese = 2019
-
-#                     tname = "year", # Year 2019 (pretreatment) or 2022 (post treatment)
-
-#                     xformla = ~ 1, # we will not condition on any other covariates, so leave blank
-
-#                     # allow_unbalanced_panel = TRUE, # test standard DID without unbalanced first
-
-#                     data = did_visit_types)
+# test <- pretreat %>% filter(marsh == 1, 
+#                             ServiceLine == "Emergency") 
+# nrow(test)
+# # 58 Marshallese Visited ER in the pretreat quarter
+# # !check this number against my yearmonth table to make sure I did it right
 # 
-# Error in pre_process_did(yname = yname, tname = tname, idname = idname,  : 
-#                            No valid groups. The variable in 'gname' should be expressed as the time a unit is first treated (0 if never-treated).
-#                          In addition: Warning messages:
-#                            1: In pre_process_did(yname = yname, tname = tname, idname = idname,  :
-#                                                    Dropped 315 units that were already treated in the first period.
-#                                                  2: In pre_process_did(yname = yname, tname = tname, idname = idname,  :
-#                                                                          Dropped 10949 observations while converting to balanced panel.
+# 
+# 
+# 
+# 
+# test <- pretreat %>% filter(marsh == 0, 
+#                             ServiceLine == "Emergency") 
+# nrow(test)
+# # 3243 Control visited ER in the pretreat quarter
+# 
+# 
+# # who was there in June, July and Aug 2022 (post-treatment)
+# posttreat <- all_visit_types %>% filter( Date >= "2022-06-01", Date <= "2022-08-31" ) %>%
+#   mutate(PostTreat = 1)
+# 
+# test <- posttreat %>% filter(marsh == 1, 
+#                              ServiceLine == "Emergency") 
+# # 73
+# 
+# test <- posttreat %>% filter(marsh == 0, 
+#                              ServiceLine == "Emergency") 
+# nrow(test)
+# #4394
+# # ! Are these unique?
+# 
+# 
+# # set up rates for DID pretends and to estimate
+# # We decided on # of Marshallese ER visits per quarter/ total Marshallese population per quarter
+# # and  # of Marshallese ER visits per quarter/ total Marshallese population per year
+# 
+# # !
+# # make a function that lets me control the population size
+# # need to divide by Marsh and NHW
+# 
+# !
+
+
+# old functions
+# pop_size <- function(marsh0_or_1, year) {
+#   x <- all_visit_types %>% filter(marsh == {{marsh0_or_1}}) %>% filter(year == {{year}}) 
+#   z<- length(unique(x$UniqueIdentifier))
+#   return(z)
+# }
+# 
+# 
+# pop_size_marsh <- c(pop_size(1, 2017), # marshallese in 2017
+#                     pop_size(1, 2018),  # marshallese in 2018...
+#                     pop_size(1, 2019),
+#                     pop_size(1, 2020),
+#                     pop_size(1, 2021),
+#                     pop_size(1, 2022),
+#                     pop_size(1, 2023),
+#                     pop_size(1, 2024))
+# 
+# pop_size_white <- c(pop_size(0, 2017), # Non-Hisp white  in 2017
+#                     pop_size(0, 2018),
+#                     pop_size(0, 2019),
+#                     pop_size(0, 2020),
+#                     pop_size(0, 2021),
+#                     pop_size(0, 2022),
+#                     pop_size(0, 2023),
+#                     pop_size(0, 2024))
+# 
+# pop_size_year <- rbind(pop_size_marsh , pop_size_white)
+# colnames(pop_size_year) <- c(2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024)
+# 
+# 
+# 
+# # can add the option to go forward 1 year with lubridate 
+# library(lubridate)
+# pop_size <- function(marsh0_or_1, start_date) {
+#   x <- all_visit_types %>% filter(marsh == {{marsh0_or_1}}) %>% filter(Date >= {{start_date}}, 
+#                                                                        Date <= {{start_date + %m% years(1)}})  # this should have the filter be 1 year more than our start data according to stack overflow
+#   z<- length(unique(x$UniqueIdentifier))
+#   return(z)
+# }
+# 
+# 
+# 
+# 
+# 
