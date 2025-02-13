@@ -275,6 +275,9 @@ did_PCP %>% filter(marsh == 1, year == 2019) %>% summarize(sum(PCP_rate))
 # should give 3 coefficients for pre and post NHW and pre and post M,
 # we want to know if the interaction term (the coef for postMarsh) if significant
 
+
+# ! but we need to figure out correlation - if DID package won't work should we do coreelated geeglm??
+
 did_visit_types <- did_visit_types %>% mutate(ER = if_else(ServiceLine == "Emergency", 1, 0), 
                            PCP = if_else(ServiceLine == "Primary Care", 1, 0))
 
