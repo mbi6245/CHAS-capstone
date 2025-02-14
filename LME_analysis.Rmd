@@ -34,15 +34,17 @@ bp$male <- ifelse(bp$Sex == 'M', 1, 0)
 ggplot(data= bp, 
        aes(x=time.from.koh1, y=Systolic, group=UniqueIdentifier, colour=koh.cat))+
   geom_line() +
-  xlab("Time (days)") + ylab("Systolic Blood Pressure (mmHg)") + theme_bw()
+  xlab("Time (days)") + ylab("Systolic Blood Pressure (mmHg)") + theme_bw() +
+  guides(colour = guide_legend(title = "KOH Attendance"))
 
 summary_bp <- bp %>% group_by(koh.cat, time.from.koh1) %>%
   summarise(mean_bp = mean(Systolic))
 
 ggplot(data=summary_bp, 
-       aes(x=time.from.koh1, y=mean_bp, group=koh.cat, colour=koh.cat))+
-  geom_line() +
-  xlab("Time (days)") + ylab("Systolic Blood Pressure (mmHg)") + theme_bw()
+       aes(x=time.from.koh1, y=mean_bp, group=koh.cat, colour=koh.cat))+ 
+   geom_smooth(method=loess, se=FALSE, linewidth=0.75) + 
+  xlab("Time (days)") + ylab("Systolic Blood Pressure (mmHg)") + theme_bw() +
+  guides(colour = guide_legend(title = "KOH Attendance"))
 ```
 
 
@@ -76,16 +78,18 @@ a1c$male <- ifelse(a1c$Sex == 'M', 1, 0)
 
 ggplot(data= a1c, 
        aes(x=time.from.koh1, y=A1c, group=UniqueIdentifier, colour=koh.cat))+
-  geom_line() +
-  xlab("Time (days)") + ylab("A1c") + theme_bw()
+  geom_line() + 
+  xlab("Time (days)") + ylab("A1c") + theme_bw() +
+  guides(colour = guide_legend(title = "KOH Attendance"))
 
 summary_a1c <- a1c %>% group_by(koh.cat, time.from.koh1) %>%
   summarise(mean_a1c = mean(A1c))
 
 ggplot(data=summary_a1c, 
        aes(x=time.from.koh1, y=mean_a1c, group=koh.cat, colour=koh.cat))+
-  geom_line() +
-  xlab("Time (days)") + ylab("A1c") + theme_bw()
+   geom_smooth(method=loess, se=FALSE, linewidth=0.75) + 
+  xlab("Time (days)") + ylab("A1c") + theme_bw() +
+  guides(colour = guide_legend(title = "KOH Attendance"))
 
 ```
 
@@ -122,15 +126,17 @@ bp2$Marsh <- factor(bp2$Marsh)
 ggplot(data= bp2, 
        aes(x=time, y=Systolic, group=UniqueIdentifier, colour=Marsh))+
   geom_line() +
-  xlab("Time (days)") + ylab("Systolic Blood Pressure (mmHg)") + theme_bw()
+  xlab("Time (days)") + ylab("Systolic Blood Pressure (mmHg)") + theme_bw() + 
+  scale_color_discrete(name = "Race", labels=c("Non-Hispanic White", "Marshallese"))
 
 summary_bp2 <- bp2 %>% group_by(Marsh, time) %>%
   summarise(mean_bp = mean(Systolic))
 
 ggplot(data=summary_bp2, 
        aes(x=time, y=mean_bp, group=Marsh, colour=Marsh))+
-  geom_line() +
-  xlab("Time (days)") + ylab("Systolic Blood Pressure (mmHg)") + theme_bw()
+  geom_smooth(method=loess, se=FALSE) + 
+  xlab("Time (days)") + ylab("Systolic Blood Pressure (mmHg)") + theme_bw() +
+  scale_color_discrete(name = "Race", labels=c("Non-Hispanic White", "Marshallese"))
 ```
 
 ```{r}
@@ -162,15 +168,17 @@ a1c2$Marsh <- factor(a1c2$Marsh)
 ggplot(data= a1c2, 
        aes(x=time, y=A1c, group=UniqueIdentifier, colour=Marsh))+
   geom_line() +
-  xlab("Time (days)") + ylab("A1c") + theme_bw()
+  xlab("Time (days)") + ylab("A1c") + theme_bw() + 
+  scale_color_discrete(name = "Race", labels=c("Non-Hispanic White", "Marshallese"))
 
 summary_a1c2 <- a1c2 %>% group_by(Marsh, time) %>%
   summarise(mean_a1c = mean(A1c))
 
 ggplot(data=summary_a1c2, 
        aes(x=time, y=mean_a1c, group=Marsh, colour=Marsh))+
-  geom_line() +
-  xlab("Time (days)") + ylab("A1c") + theme_bw()
+  geom_smooth(method=loess, se=FALSE) + 
+  xlab("Time (days)") + ylab("A1c") + theme_bw() + 
+  scale_color_discrete(name = "Race", labels=c("Non-Hispanic White", "Marshallese"))
 ```
 
 ```{r}
