@@ -5,6 +5,7 @@ library(lubridate)
 library(zoo)
 library(rstudioapi)
 library(did)
+library(geepack) #geeglm
 
 # Import dataframes DataCleaningDID.R script
 
@@ -16,8 +17,24 @@ all_visit_types <- read.csv(fp_visits)
 # 1 = marshallese, 0 = Non-Hispanic White, NA = Other not in our analysis)
 
 
-fp_tarpop = file.path(getwd(), "Analysis Data/targetpop_DID.csv")
-targetpop_DID <- read.csv(fp_tarpop) 
+# start building dataframe
+did_visit_types <- all_visit_types %>% filter(Date >= "2019-06-01", Date <= "2019-08-31"  | # pretreat
+                                                Date >= "2022-06-01", Date <= "2022-08-31") # post treat
+# remove the NA, not our target pop
+did_visit_types <- did_visit_types %>% filter(!is.na(marsh)) 
+
+
+# trying to fit DID pattern, but I don't think we need these for GEEGLM
+# mark post treatment (the indicator = 0 means its pretreat)
+did_visit_types <- did_visit_types %>% mutate(after.treat = if_else(year == 2022, 1, 0))
+
+
+did_visit_types <- did_visit_types %>% mutate(first.treat = if_else(marsh == 1, 2019, 0))
+# 
+# 
+# 
+# fp_tarpop = file.path(getwd(), "Analysis Data/targetpop_DID.csv")
+# targetpop_DID <- read.csv(fp_tarpop) 
 
 
 # 
@@ -90,28 +107,30 @@ targetpop_DID <- read.csv(fp_tarpop)
 
 # to use DID package
 
+# Best Guess for DID! 
+# mw.attgt <- att_gt( yname = "ER", # outcome name
+#                     idname = "UniqueIdentifier", # each observation
+#                     # gname = , # group name, first.treat # we don't have groups varying over time like treated in 2003, 2004...
+#                     tname = "year", # time name
+#                     xformla = "marsh",
+#                     #, # we will not condition on any other covariates, or leave blank
+#                     # allow_unbalanced_panel = TRUE, # test standard DID without unbalanced first
+#                     data = did_visit_types)
+# 
+# 
+# 
+# mw.attgt <- att_gt(yname = "ER", # outcome name
+#                    idname = "UniqueIdentifier", # each observation
+#                    gname = "marsh", # group name, first.treat
+#                    tname = "year", # time name
+#                    xformla = ~1, 
+#                    #, # we will not condition on any other covariates, or leave blank
+#                    # allow_unbalanced_panel = TRUE, # test standard DID without unbalanced first
+#                    data = did_visit_types)
+# 
 
-mw.attgt <- att_gt( yname = "ER", # outcome name
-                    idname = "UniqueIdentifier", # each observation
-                    # gname = , # group name, first.treat # we don't have groups varying over time like treated in 2003, 2004...
-                    tname = "year", # time name
-                    xformla = "marsh",
-                    #, # we will not condition on any other covariates, or leave blank
-                    # allow_unbalanced_panel = TRUE, # test standard DID without unbalanced first
-                    data = did_visit_types)
 
-
-
-mw.attgt <- att_gt(yname = "ER", # outcome name
-                   idname = "UniqueIdentifier", # each observation
-                   gname = "marsh", # group name, first.treat
-                   tname = "year", # time name
-                   xformla = ~1, 
-                   #, # we will not condition on any other covariates, or leave blank
-                   # allow_unbalanced_panel = TRUE, # test standard DID without unbalanced first
-                   data = did_visit_types)
-
-# from DID package
+# Example from DID package
 # estimate group-time average treatment effects on the treated without covariates
 
 # att_gt
@@ -130,8 +149,6 @@ mw.attgt <- att_gt(yname = "lemp", # the outcome is the log employment rate per 
                    data = mpdta)
 
 
-
-did_visit_types <- did_visit_types %>% mutate(first.treat = if_else(marsh == 1, 2019, 0))
 
 
 # doesn't work with forcing a group name
@@ -187,3 +204,107 @@ did_visit_types <- did_visit_types %>% mutate(first.treat = if_else(marsh == 1, 
 #                                                    Dropped 315 units that were already treated in the first period.
 #                                                  2: In pre_process_did(yname = yname, tname = tname, idname = idname,  :
 #                                                                          Dropped 10949 observations while converting to balanced panel.
+
+
+
+################### GEEGLM #################
+############################################
+
+# Standford said they use GEEGLM for correlation 
+# https://diff.healthpolicydatascience.org/
+
+# for those who are in both time frames only!! 
+# Change data source? 
+attempt2 <- lm(ER ~ marsh*year  , data = did_visit_types)
+summary(attempt2)
+# all significant! 
+
+attempt3 <- lm(PCP ~ marsh*year  , data = did_visit_types)
+summary(attempt3)
+
+# Instead use GEEGLM for all
+
+
+
+# From Longitudinal lectures
+# mod1 <- geeglm(distance ~ Sex*age8, data = Orthodont,
+#                + id = Subject, corstr = "independence")
+
+# gee_mod_x <- geeglm(x_binary ~ y + minutes_in_transport + sex + ega_cat , #TimePoint Being replaced by minutes_in_transport, not TimeDiff, not real time stamp,
+#                     data = mydata,
+#                     id = PRID,
+#                     family=binomial(link="logit"),
+#                     # waves = time,
+#                     scale.fix = T, # this sets phi = 1
+#                     corstr = "exchangeable")
+# print(gee_mod_x)
+
+
+
+gee_mod_DID_PCP <- geeglm(PCP ~ marsh*year, 
+                    data = did_visit_types,
+                    id = UniqueIdentifier,
+                    family = gaussian, # previously I used in longitudinal class family=binomial(link="logit"),
+                    # waves = time, # we only have one wave of treatment
+                    scale.fix = T, # this sets phi = 1
+                    corstr = "exchangeable")
+print(gee_mod_DID_PCP)
+summary(gee_mod_DID_PCP)
+
+# Call:
+#   geeglm(formula = PCP ~ marsh * year, family = gaussian, data = did_visit_types, 
+#          id = UniqueIdentifier, corstr = "exchangeable", scale.fix = T)
+# 
+# Coefficients:
+#   Estimate  Std.err  Wald Pr(>|W|)    
+# (Intercept) 12.34366  3.11206 15.73 7.30e-05 ***
+#   marsh       90.87614 22.65508 16.09 6.04e-05 ***
+#   year        -0.00590  0.00154 14.68 0.000128 ***
+#   marsh:year  -0.04505  0.01121 16.16 5.83e-05 ***
+#   ---
+#   Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+# 
+# Correlation structure = exchangeable 
+# Scale is fixed.
+# 
+# Link = identity 
+# 
+# Estimated Correlation Parameters:
+#   Estimate  Std.err
+# alpha   -1.025 0.001474
+# Number of clusters:   50601  Maximum cluster size: 2
+
+
+gee_mod_DID_ER <- geeglm(ER ~ marsh*year, 
+                          data = did_visit_types,
+                          id = UniqueIdentifier,
+                          family = gaussian, # previously I used in longitudinal class family=binomial(link="logit"),
+                          # waves = time, # we only have one wave of treatment
+                          scale.fix = T, # this sets phi = 1
+                          corstr = "exchangeable")
+print(gee_mod_DID_ER)
+summary(gee_mod_DID_ER)
+
+# 
+# Call:
+#   geeglm(formula = ER ~ marsh * year, family = gaussian, data = did_visit_types, 
+#          id = UniqueIdentifier, corstr = "exchangeable", scale.fix = T)
+# 
+# Coefficients:
+#   Estimate  Std.err  Wald Pr(>|W|)    
+# (Intercept) 23.38413  2.31464 102.1  < 2e-16 ***
+#   marsh       82.33869 19.25319  18.3  1.9e-05 ***
+#   year        -0.01149  0.00115 100.7  < 2e-16 ***
+#   marsh:year  -0.04075  0.00952  18.3  1.9e-05 ***
+#   ---
+#   Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+# 
+# Correlation structure = exchangeable 
+# Scale is fixed.
+# 
+# Link = identity 
+# 
+# Estimated Correlation Parameters:
+#   Estimate Std.err
+# alpha   -0.153 0.00694
+# Number of clusters:   50601  Maximum cluster size: 2
