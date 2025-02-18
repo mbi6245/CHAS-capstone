@@ -164,6 +164,8 @@ a1c2 <- a1c2 %>% mutate(time = round(as.numeric(difftime(Date, KOHDate, units="d
 
 a1c2$male <- ifelse(a1c2$Sex == 'M', 1, 0)
 a1c2$Marsh <- factor(a1c2$Marsh)
+a1c2 %>% filter(Marsh==0) %>% distinct(UniqueIdentifier)
+length(unique(a1c2$UniqueIdentifier))
 
 ggplot(data= a1c2, 
        aes(x=time, y=A1c, group=UniqueIdentifier, colour=Marsh))+
