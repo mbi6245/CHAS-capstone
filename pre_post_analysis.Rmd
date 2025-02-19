@@ -115,7 +115,7 @@ std_times = o2_bp %>%
       Date == pre_Date,
       0,
       # ifelse(pre_Date < KOH1, as.numeric(post_Date - KOH1), as.numeric(post_Date - pre_Date))
-      as.numeric(post_Date - pre_Date)
+      as.numeric(post_Date - KOH1)
     )
   ) %>%
   select(std_time) %>% 
@@ -134,8 +134,8 @@ std_times = o2_a1c %>%
     std_time = ifelse(
       Date == pre_Date,
       0,
-      ifelse(pre_Date < KOH1, as.numeric(post_Date - KOH1), as.numeric(post_Date - pre_Date))
-      # as.numeric(post_Date - pre_Date)
+      # ifelse(pre_Date < KOH1, as.numeric(post_Date - KOH1), as.numeric(post_Date - pre_Date))
+      as.numeric(post_Date - KOH1)
     )
   ) %>%
   select(std_time) %>% 
