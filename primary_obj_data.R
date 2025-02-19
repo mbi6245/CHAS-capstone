@@ -309,6 +309,7 @@ obj1.mult.imput.var <- obj1.mult.imput %>% select(c(UniqueIdentifier, IncomeLeve
 # add the imputed data to the datasets
 obj1.bp.pre.post.full <- obj1.bp.pre.post.full %>% select(-c(IncomeLevel, BLACERISK, avg.bmi))
 obj1.bp.pre.post.imput <- left_join(obj1.bp.pre.post.full, obj1.mult.imput.var, by="UniqueIdentifier")
+obj1.bp.pre.post.imput = left_join(obj1.bp.pre.post.imput, koh.mtg1, by="UniqueIdentifier")
 write.csv(obj1.bp.pre.post.imput, 'Analysis Data/Obj1BPPrePost.csv')
 
 obj1.bp.lme.full <- obj1.bp.lme.full %>% select(-c(IncomeLevel, BLACERISK, avg.bmi))
@@ -317,6 +318,7 @@ write.csv(obj1.bp.lme.imput, 'Analysis Data/Obj1BP_LME.csv')
 
 obj1.a1c.pre.post.full <- obj1.a1c.pre.post.full %>% select(-c(IncomeLevel, BLACERISK, avg.bmi))
 obj1.a1c.pre.post.imput <- left_join(obj1.a1c.pre.post.full, obj1.mult.imput.var, by="UniqueIdentifier")
+obj1.a1c.pre.post.imput = left_join(obj1.a1c.pre.post.imput, koh.mtg1, by="UniqueIdentifier")
 write.csv(obj1.a1c.pre.post.imput, 'Analysis Data/Obj1A1cPrePost.csv')
 
 obj1.a1c.lme.full <- obj1.a1c.lme.full %>% select(-c(IncomeLevel, BLACERISK, avg.bmi))
