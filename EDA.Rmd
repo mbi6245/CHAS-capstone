@@ -505,7 +505,7 @@ obj1 %>% select(c('KOH.cat','age','Sex.long','avg.bmi','HTN','PreDM','T2DM','bot
   modify_table_styling(
     columns = label,
     rows = label == "Risk Score",
-    footnote = "Need to add definition of risk score here"
+    footnote = "Risk scores are calculated based on the BLACE Index Scoring Tool. Scores range from 0-19; <8 is low risk, 8-11 is moderate risk, and 12+ is high risk."
   ) %>%
    modify_header(label ~ "**Baseline Characteristics**") %>%
   modify_header(all_stat_cols() ~ "**{level}**<br>\nN = {n}") %>%
@@ -545,12 +545,12 @@ obj2 %>% select(c('Group','age','Sex.long','avg.bmi','HTN','PreDM','T2DM','both'
   modify_table_styling(
     columns = label,
     rows = label == "Income Level",
-    footnote = "Percentage of participant's annual income relative to the federal poverty line"
+    footnote = "Percentage of participant's annual income relative to the federal poverty line."
   ) %>%
   modify_table_styling(
     columns = label,
     rows = label == "Risk Score",
-    footnote = "Need to add definition of risk score here"
+    footnote = "Risk scores are calculated based on the BLACE Index Scoring Tool. Scores range from 0-19; <8 is low risk, 8-11 is moderate risk, and 12+ is high risk."
   ) %>%
    modify_header(label ~ "**Baseline Characteristics**") %>%
    modify_header(all_stat_cols() ~ "**{level}**<br>\nN = {n}") %>%
@@ -715,7 +715,6 @@ enc.counts.wide %>%
 ```
 
 ```{r}
-str(obj1.koh.bp)
 obj1.koh <- obj1 %>% filter(KOH==1)
 obj1.koh$koh.counts.factor <- factor(obj1.koh$koh.counts)
 obj1.koh$koh.counts <- as.numeric(obj1.koh$koh.counts)
