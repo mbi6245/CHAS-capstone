@@ -15,6 +15,8 @@ library(gtsummary)
 library(lubridate)
 library(naniar)
 library(flextable)
+library(sjlabelled)
+library(gt)
 ```
 
 # Descriptive Statistics
@@ -710,5 +712,53 @@ enc.counts.wide %>%
   modify_header(label ~ "**Mean Visits per Patient**") %>%
   modify_header(all_stat_cols() ~ "**{level}**<br>\nN = {n}") %>%
   as_flex_table()
+```
+
+```{r}
+str(obj1.koh.bp)
+obj1.koh <- obj1 %>% filter(KOH==1)
+obj1.koh$koh.counts.factor <- factor(obj1.koh$koh.counts)
+obj1.koh$koh.counts <- as.numeric(obj1.koh$koh.counts)
+
+obj1.koh.bp <- obj1.koh %>% filter(HTN==1)
+koh.bp.tbl <- obj1.koh.bp %>% 
+select(c("koh.counts","koh.counts.factor")) %>%
+   gtsummary::tbl_summary(
+     include=c(koh.counts, koh.counts.factor),
+     label = list(
+       koh.counts ~ 'Average KOH Meetings Attended',
+       koh.counts.factor ~ 'KOH Meetings Attended'
+     ),
+     missing_text = "Missing",
+     type = list(koh.counts ~ "continuous"),
+     statistic = all_continuous() ~ c(
+       "{median} ({min}, {max})"
+     ),
+     digits = all_continuous() ~ 1
+   ) %>%
+   bold_labels() %>%
+   modify_header(all_stat_cols() ~ "**Hypertension**<br>\nN = 42")
+
+obj1.koh.a1c <- obj1.koh %>% filter(Diabetes==1)
+koh.a1c.tbl <- obj1.koh.a1c %>% 
+select(c("koh.counts","koh.counts.factor")) %>%
+   gtsummary::tbl_summary(
+     include=c(koh.counts, koh.counts.factor),
+     label = list(
+       koh.counts ~ 'Average KOH Meetings Attended',
+       koh.counts.factor ~ 'KOH Meetings Attended'
+     ),
+     missing_text = "Missing",
+     type = list(koh.counts ~ "continuous"),
+     statistic = all_continuous() ~ c(
+       "{median} ({min}, {max})"
+     ),
+     digits = all_continuous() ~ 1
+   ) %>%
+   bold_labels() %>%
+   modify_header(all_stat_cols() ~ "**Diabetes**<br>\nN = 71")
+
+koh.tbl <- tbl_merge(tbls = list(koh.bp.tbl, koh.a1c.tbl), tab_spanner = FALSE) %>% modify_caption("**'Know Our Health' Participation by Disease Type**")
+koh.tbl 
 ```
 
