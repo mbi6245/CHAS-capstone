@@ -293,7 +293,7 @@ UID_balanced_panel_year <- intersect(did_visit_types_qtr_2019$UniqueIdentifier, 
 did_visit_types_qtr_balanced <- did_visit_types_qtr %>% filter(UniqueIdentifier %in% UID_balanced_panel_year)
 
 
-gee_mod_DID_ER_bal <- geeglm(ER ~ marsh*year_center, 
+gee_mod_DID_ER_qtr_bal <- geeglm(ER ~ marsh*year_center, 
                          data = did_visit_types_qtr_balanced,
                          id = UniqueIdentifier,
                          family = gaussian, # previously I used in longitudinal class family=binomial(link="logit"),
@@ -301,7 +301,7 @@ gee_mod_DID_ER_bal <- geeglm(ER ~ marsh*year_center,
                          scale.fix = T, # this sets phi = 1
                          corstr = "exchangeable")
 # print(gee_mod_DID_ER)
-summary(gee_mod_DID_ER_bal)
+summary(gee_mod_DID_ER_qtr_bal)
 
 # Call:
 #   geeglm(formula = ER ~ marsh * year_center, family = gaussian, 
@@ -328,7 +328,7 @@ summary(gee_mod_DID_ER_bal)
 # Number of clusters:   26851  Maximum cluster size: 2 
 
 
-gee_mod_DID_PCP_bal <- geeglm(PCP ~ marsh*year_center, 
+gee_mod_DID_PCP_qtr_bal <- geeglm(PCP ~ marsh*year_center, 
                           data = did_visit_types_qtr_balanced,
                           id = UniqueIdentifier,
                           family = gaussian, # previously I used in longitudinal class family=binomial(link="logit"),
@@ -336,7 +336,7 @@ gee_mod_DID_PCP_bal <- geeglm(PCP ~ marsh*year_center,
                           scale.fix = T, # this sets phi = 1
                           corstr = "exchangeable")
 # print(gee_mod_DID_PCP)
-summary(gee_mod_DID_PCP_bal)
+summary(gee_mod_DID_PCP_qtr_bal)
 
 # Call:
 #   geeglm(formula = PCP ~ marsh * year_center, family = gaussian, 
