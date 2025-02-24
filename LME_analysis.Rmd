@@ -44,7 +44,7 @@ ggplot(data=summary_bp,
        aes(x=time.from.koh1, y=mean_bp, group=koh.cat, colour=koh.cat))+ 
    geom_smooth(method=loess, se=FALSE, linewidth=0.75) + 
   xlab("Time (days)") + ylab("Systolic Blood Pressure (mmHg)") + theme_bw() +
-  guides(colour = guide_legend(title = "KOH Attendance"))
+  guides(colour = guide_legend(title = "KOH Attendance")) + coord_cartesian(ylim=c(108,147))
 ```
 
 
@@ -88,8 +88,8 @@ summary_a1c <- a1c %>% group_by(koh.cat, time.from.koh1) %>%
 ggplot(data=summary_a1c, 
        aes(x=time.from.koh1, y=mean_a1c, group=koh.cat, colour=koh.cat))+
    geom_smooth(method=loess, se=FALSE, linewidth=0.75) + 
-  xlab("Time (days)") + ylab("A1c") + theme_bw() +
-  guides(colour = guide_legend(title = "KOH Attendance"))
+  xlab("Time (days)") + ylab("A1c (%)") + theme_bw() +
+  guides(colour = guide_legend(title = "KOH Attendance")) + coord_cartesian(ylim=c(7,10.5))
 
 ```
 
@@ -136,7 +136,7 @@ ggplot(data=summary_bp2,
        aes(x=time, y=mean_bp, group=Marsh, colour=Marsh))+
   geom_smooth(method=loess, se=FALSE) + 
   xlab("Time (days)") + ylab("Systolic Blood Pressure (mmHg)") + theme_bw() +
-  scale_color_discrete(name = "Race", labels=c("Non-Hispanic White", "Marshallese"))
+  scale_color_discrete(name = "Race", labels=c("Non-Hispanic White", "Marshallese")) + coord_cartesian(ylim=c(108,147))
 ```
 
 ```{r}
@@ -178,9 +178,9 @@ summary_a1c2 <- a1c2 %>% group_by(Marsh, time) %>%
 
 ggplot(data=summary_a1c2, 
        aes(x=time, y=mean_a1c, group=Marsh, colour=Marsh))+
-  geom_smooth(method=loess, se=FALSE) + 
-  xlab("Time (days)") + ylab("A1c") + theme_bw() + 
-  scale_color_discrete(name = "Race", labels=c("Non-Hispanic White", "Marshallese"))
+  geom_smooth(method=loess, se=FALSE) +
+  xlab("Time (days)") + ylab("A1c (%)") + theme_bw() + 
+  scale_color_discrete(name = "Race", labels=c("Non-Hispanic White", "Marshallese")) + coord_cartesian(ylim=c(7,10.5))
 ```
 
 ```{r}
