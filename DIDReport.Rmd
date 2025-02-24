@@ -1,0 +1,77 @@
+---
+title: "Capstone Difference in Difference Report"
+author: "Cindy Elder, Max Bi and Gabby Lopez"
+date: "`r Sys.Date()`"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+library(knitr)
+
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# For ER Rates Population per Year
+
+## All Patients in 2019 to 2022
+
+Since the first Marshallese Community Health Worker (CHW) was hired in September 2019, we used the period of August 31, 2018 to August 31, 2019 as the pre-treatment populations of Marshallese and Non-Hispanic White patients at the Maple and Market clinics. We also used the same dates in 2021 and 2022 to find the post-treament populations.
+
+! Size of population
+
+The population of CHAS patients has grown over time. Using data from all of the patients who visited the CHAS Maple and Market clinics during this time, we built a model that accounts for the correlation that results from patients who have been there in both 2019 and 2022, and includes patients who were not there in 2019 but joined by 2022. 
+
+We modeled the number of ER visits between June 1 and August 31, 2019, and the number for the same dates in 2022, using a saturated model with indicators for Marshallese, year, and the interaction of these 2 variables.
+
+Using GEE GLM, we estimate that the expected value of ER visits per patients for our control population of  Non-Hispanic White patients in 2019 is `r gee_mod_DID_ER$coefficients[1]`.
+
+Similarly, we estimate the rate of ER visits per person visits for Marshallese in 2019 is `r gee_mod_DID_ER$coefficients[1] + gee_mod_DID_ER$coefficients[2]`. This is slightly higher than the Non-Hispanic White population, but we note that the p-value is above the alpha = 0.05 level (p-value = 0.063.)
+
+! how to take out the p-value of this model? 
+
+
+
+Over the next three years, the rate of change for the ER visits Non-Hispanic White patients goes up by `r gee_mod_DID_ER$coefficients[3]` per year.  __ trend. This may not be not be surprising since this data was recorded during the COVID pandemic. However, we note that the rate of change for the Marshallese patients goes up by a smaller amount during the same time, `r gee_mod_DID_ER$coefficients[3] + gee_mod_DID_ER$coefficients[3]` per year. The p-values for these coefficients are both significant at less than 0.001. 
+
+Based on the Difference in Difference causal model, we interpret lower rate of ER visits for the Marshallese as the effect of the Marshallese Healthcare Workers. 
+
+__ trend
+
+! we can use causal language with DID.
+! do we like our interpretations? Should I calculate the slope *3 for the 3 year change? 
+
+
+## Existing Patients from 2019
+
+When we restrict the analysis to patients that were there the entire time period, from 2019 to 2022, we see similar trends. 
+
+! how do we pull out knitr tables with this model?
+
+
+
+
+# ER Rates Population per Quarter
+We also analyzed the model using only patients who visited the CHAS Maple and Market Clinics in the same quarter.  
+
+
+Pop size shrank by 25% for the Non-Hispanic White population, and about 33% for the Marshallese population. 
+```{r}
+ 315/476
+# 0.662
+ 13804/18586
+# 0.743
+
+```
+
+
+```{r}
+
+
+#knitr::kable(twobytwo, caption = "Contingency table of whether patient achieved complete remission by treatment group.")
+```
+
+
+
+# Primary Care Provider Visits
+
+!
