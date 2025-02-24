@@ -122,14 +122,14 @@ length(unique(NHW_yr$UniqueIdentifier))
 did_visit_types_year <- did_visit_types_year %>% mutate(year_center = (year - 2019) )
 
 
-gee_mod_DID_PCP <- geeglm(PCP ~ marsh*year_center, 
+gee_mod_DID_PCP_yr <- geeglm(PCP ~ marsh*year_center, 
                           data = did_visit_types_year,
                           id = UniqueIdentifier,
                           family = gaussian, 
                           scale.fix = T, # this sets phi = 1
                           corstr = "exchangeable")
 #print(gee_mod_DID_PCP)
-summary(gee_mod_DID_PCP)
+summary(gee_mod_DID_PCP_yr)
 
 
 # Call:
@@ -156,14 +156,14 @@ summary(gee_mod_DID_PCP)
 # alpha  -0.0172 0.00149
 # Number of clusters:   186070  Maximum cluster size: 2 
 
-gee_mod_DID_ER <- geeglm(ER ~ marsh*year_center, 
+gee_mod_DID_ER_yr <- geeglm(ER ~ marsh*year_center, 
                          data = did_visit_types_year,
                          id = UniqueIdentifier,
                          family = gaussian, 
                          scale.fix = T, # this sets phi = 1
                          corstr = "exchangeable")
 #print(gee_mod_DID_ER)
-summary(gee_mod_DID_ER)
+summary(gee_mod_DID_ER_yr)
 
 # Call:
 #   geeglm(formula = ER ~ marsh * year_center, family = gaussian, 
@@ -268,14 +268,14 @@ length(unique(NHW_yr_bal$UniqueIdentifier))
 
 
 
-gee_mod_DID_ER_bal <- geeglm(ER ~ marsh*year_center, 
+gee_mod_DID_ER_yr_bal <- geeglm(ER ~ marsh*year_center, 
                              data = did_visit_types_year_balanced,
                              id = UniqueIdentifier,
                              family = gaussian, 
                              scale.fix = T, # this sets phi = 1
                              corstr = "exchangeable")
 # print(gee_mod_DID_ER)
-summary(gee_mod_DID_ER_bal)
+summary(gee_mod_DID_ER_yr_bal)
 
 # Call:
 #   geeglm(formula = ER ~ marsh * year_center, family = gaussian, 
@@ -303,14 +303,14 @@ summary(gee_mod_DID_ER_bal)
 gee_mod_DID_ER_bal$coefficients[1]
 
 
-gee_mod_DID_PCP_bal <- geeglm(PCP ~ marsh*year_center, 
+gee_mod_DID_PCP_yr_bal <- geeglm(PCP ~ marsh*year_center, 
                               data = did_visit_types_year_balanced,
                               id = UniqueIdentifier,
                               family = gaussian, 
                               scale.fix = T, # this sets phi = 1
                               corstr = "exchangeable")
 # print(gee_mod_DID_PCP)
-summary(gee_mod_DID_PCP_bal)
+summary(gee_mod_DID_PCP_yr_bal)
 
 # Call:
 #   geeglm(formula = PCP ~ marsh * year_center, family = gaussian, 
