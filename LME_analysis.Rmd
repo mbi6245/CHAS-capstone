@@ -12,6 +12,9 @@ library(tidyverse)
 library(ggplot2)
 library(nlme)
 ```
+note to self: run regression diagnostics and ignore clustering - regular linear regression and see if any observations are having huge impact
+change days to months
+truncate analysis after 1 year
 
 ```{r}
 bp <- read.csv('Analysis Data/Obj1BP_LME.csv')[,-1]
@@ -56,6 +59,10 @@ bp.mod1 <- lme(
   method = "REML"
 )
 summary(bp.mod1)
+intervals(bp.mod1)
+-0.134937540 * 365
+-4.799116e-02 * 365
+0.03895521 * 365
 ```
 
 ```{r}
@@ -87,9 +94,9 @@ summary_a1c <- a1c %>% group_by(koh.cat, time.from.koh1) %>%
 
 ggplot(data=summary_a1c, 
        aes(x=time.from.koh1, y=mean_a1c, group=koh.cat, colour=koh.cat))+
-   geom_smooth(method=loess, se=FALSE, linewidth=0.75) + 
+   geom_smooth(method=loess, se=TRUE, linewidth=0.75) + 
   xlab("Time (days)") + ylab("A1c (%)") + theme_bw() +
-  guides(colour = guide_legend(title = "KOH Attendance")) + coord_cartesian(ylim=c(7,10.5))
+  guides(colour = guide_legend(title = "KOH Attendance")) 
 
 ```
 
@@ -101,6 +108,10 @@ a1c.mod1 <- lme(
   data = a1c,
   method = "REML"
 )
+intervals(a1c.mod1)
+-0.001825579 * 365
+5.402657e-05 * 365
+0.0019336320 * 365
 summary(a1c.mod1)
 ```
 
@@ -147,6 +158,10 @@ bp.mod2 <- lme(
   method = "REML"
 )
 summary(bp.mod2)
+intervals(bp.mod2)
+-5.571021e-03 * 365
+-8.387029e-05 * 365
+5.403280e-03 * 365
 ```
 
 objective 2 A1c
@@ -180,7 +195,7 @@ ggplot(data=summary_a1c2,
        aes(x=time, y=mean_a1c, group=Marsh, colour=Marsh))+
   geom_smooth(method=loess, se=FALSE) +
   xlab("Time (days)") + ylab("A1c (%)") + theme_bw() + 
-  scale_color_discrete(name = "Race", labels=c("Non-Hispanic White", "Marshallese")) + coord_cartesian(ylim=c(7,10.5))
+  scale_color_discrete(name = "Race", labels=c("Non-Hispanic White", "Marshallese"))
 ```
 
 ```{r}
@@ -191,5 +206,9 @@ a1c.mod2 <- lme(
   method = "REML"
 )
 summary(a1c.mod2)
+intervals(a1c.mod2)
+-8.215749e-04 * 365
+-3.558031e-04 * 365
+1.099686e-04 * 365
 ```
 
