@@ -678,7 +678,7 @@ enc.counts.wide <- enc.counts.wide %>% rename(PrimaryCare = 'Primary Care', Urge
   mutate(across(c(PrimaryCare, Emergency, UrgentCare, Behavioral, Pharmacy, 
                   Equity, Dental, Multispecialty, Other), as.numeric))
 ```
-i think i still need to adjust this table a bit but it's fine for now. I removed visit types (Health Equity and Other) that had 0 visits for multiple years as well. 2016, 2017, and 2025 didn't have much data either so I removed them. Then I removed years 2018 and 2019 just to make the table a bit smaller since it was so wide.
+I removed visit types (Health Equity and Other) that had 0 visits for multiple years as well. 2016, 2017, and 2025 didn't have much data either so I removed them. Then I removed years 2018 and 2019 just to make the table a bit smaller since it was so wide.
 ```{r echo=FALSE}
 # making the encounters table
 str(enc.counts.wide)

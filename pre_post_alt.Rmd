@@ -1,0 +1,59 @@
+---
+title: "Pre Post Analysis"
+author: "Max Bi"
+date: "`r Sys.Date()`"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(nlme)
+# source("secondary_obj_data.R")
+```
+
+```{r}
+KOH1 = as.Date("2023-04-05")
+o1_bp = read_csv("Analysis Data/Obj1BPPrePost.csv")
+names(o1_bp)[1] = "row_id"
+o1_a1c = read_csv("Analysis Data/Obj1A1cPrePost.csv")
+names(o1_a1c)[1] = "row_id"
+o2_bp = read_csv("Analysis Data/Obj2BPPrePost.csv")
+names(o2_bp)[1] = "row_id"
+o2_a1c = read_csv("Analysis Data/Obj2A1cPrePost.csv")
+names(o2_a1c)[1] = "row_id"
+```
+
+```{r}
+o1_bp_pre = o1_bp %>% 
+  group_by(UniqueIdentifier) %>% 
+  summarize(pre = ifelse(BPDate == min(BPDate), sys, NA)) %>%
+  drop_na() %>% 
+  select(UniqueIdentifier, pre)
+
+o1_bp_post = o1_bp %>% 
+  group_by(UniqueIdentifier) %>% 
+  summarize(post = ifelse(BPDate == max(BPDate), sys, NA)) %>%
+  drop_na() %>% 
+  select(UniqueIdentifier, post)
+
+o1_bppp = o1_bp %>%
+  select(-c(row_id, BPDate, sys, dia)) %>% 
+  unique() %>%
+  left_join(y=o1_bp_pre, by="UniqueIdentifier") %>% 
+  left_join(y=o1_bp_post, by="UniqueIdentifier") %>% 
+  mutate(
+    # Sex = ifelse(o1_bppp$Sex == "M", 1, 0),
+    koh_cat = case_when(
+      KOH.none == 1 ~ "None",
+      KOH.one == 1 ~ "One",
+      KOH.mult == 1 ~ "Multiple"
+    )
+  )
+```
+
+```{r}
+mod_o1_bppp = lm(post ~ koh_cat + pre + age + Sex + IncomeLevel + BLACERISK + avg.bmi, data=o1_bppp)
+summary(mod_o1_bppp)
+```
+
