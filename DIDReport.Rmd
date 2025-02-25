@@ -179,17 +179,16 @@ Similarly, we estimate the rate of ER visits per person visits for Marshallese i
 
 
 
-Over the next three years, the rate of change for the ER visits Non-Hispanic White patients went up by `r gee_mod_DID_ER_yr$coefficients[3]` per year.  __ trend. This may not be not be surprising since this data was recorded during the COVID pandemic. However, we note that the rate of change for the Marshallese patients went up by a smaller amount during the same time, `r gee_mod_DID_ER_yr$coefficients[3] + gee_mod_DID_ER_yr$coefficients[4]` per year. The p-values for these coefficients are both significant at less than 0.001. 
+Over the next three years, the rate of change for the ER visits Non-Hispanic White patients went up by `r gee_mod_DID_ER_yr$coefficients[3]` per year. This may not be not be surprising since this data was recorded during the COVID pandemic. However, we note that the rate of change for the Marshallese patients went up by a smaller amount during the same time, `r gee_mod_DID_ER_yr$coefficients[3] + gee_mod_DID_ER_yr$coefficients[4]` per year. The p-values for these coefficients are both significant at less than 0.001. 
 
 Based on the Difference in Difference causal model, we interpret lower rate of ER visits for the Marshallese as the effect of the Marshallese Healthcare Workers. 
 
-__ trend
 
 ! we can use causal language with DID.
 ! do we like our interpretations? Should I calculate the slope *3 for the 3 year change? 
 
 
-## Existing Patients from 2019
+## Existing Patients from 2019  (Balanced Panel ER Rate Per Year)
 
 When we restrict the analysis to patients that were there the entire time period, from 2019 to 2022, we see similar trends. 
 
@@ -201,7 +200,6 @@ When we restrict the analysis to patients that were there the entire time period
 # ER Rates Population per Quarter
 We also analyzed the model using only patients who visited the CHAS Maple and Market Clinics in the same quarter.  
 
-
 Pop size shrank by 25% for the Non-Hispanic White population, and about 33% for the Marshallese population. 
 ```{r}
  315/476
@@ -212,13 +210,54 @@ Pop size shrank by 25% for the Non-Hispanic White population, and about 33% for 
 ```
 
 
+We estimate the average ER rate for the Non-Hispanic White population in 2019 
+
+
+`r gee_mod_DID_ER_qtr$coefficients[1]`. 
+The Marshallese were higher at `r gee_mod_DID_ER_qtr$coefficients[1]+ gee_mod_DID_ER_qtr$coefficients[2]`. 
+
+Per year, the rate for Non-Hispanic White patients decreased by `r gee_mod_DID_ER_qtr$coefficients[3]` while the Marshallese patients ER rate decreased by `r gee_mod_DID_ER_qtr$coefficients[3]+ gee_mod_DID_ER_qtr$coefficients[4]`. 
+
+
+## Existing Patients from 2019 (Balanced Panel ER Rate Per Quarter)
+
+For those patients who were there in both 2019 and 2022, we estimate the ER rate for the Non-Hispanic White patients in 2019 was 
+
+`r gee_mod_DID_ER_qtr_bal$coefficients[1]` and the Marshallese ER rate was `r gee_mod_DID_ER_qtr_bal$coefficients[1] + gee_mod_DID_ER_qtr_bal$coefficients[2]`
+
+Per year, the Non-Hispanic White rates went down by `r gee_mod_DID_ER_qtr_bal$coefficients[3]` but the Marshallese rates went down faster, 
+ `r gee_mod_DID_ER_qtr_bal$coefficients[3] + gee_mod_DID_ER_qtr_bal$coefficients[4]` per year. Both have statistically signficant p-values. 
+
+
+# For Primary Care Provider (PCP) Visits Rates per Year
+## All Patients in 2019 to 2022
+Again, using a GEE GLM model, we estimate that the average Primary Care Provider visit rate is `r gee_mod_DID_PCP_yr$ coefficients [1]`. The average rate for the Marshallese is slightly lower but with a p-value =0.181 it was not statistically different. 
+
+Each year, the PCP rate went up slightly for the Non-Hispanic White group by `r gee_mod_DID_PCP_yr$ coefficients [3]`, but it went down very slightly for the Marshallese, `r gee_mod_DID_PCP_yr$ coefficients [3] + gee_mod_DID_PCP_yr$ coefficients [4]`. 
+Both of these trends have significant p-values. 
+
+## Existing Patients from 2019 (Balanced Panel PCP Rate for the Years)
+If we restrict the analysis to the primary care patients who visited the clinics in both 2019 and 2022, we find similar trends. 
+The Marshallese had slightly higher rates of PCP visits but not statistically significant with a p-value = 0.27.
+During the three years of study, the current Non-Hispanic White patients had a statistically significant increase in their PCP rates, with an average increase of `r gee_mod_DID_PCP_yr_bal$ coefficients [2]` per year. 
+
+However, again the Marshallese on average had a decreased PCP rate, with a change of `r gee_mod_DID_PCP_yr_bal$ coefficients [3] + gee_mod_DID_PCP_yr_bal$ coefficients [4]` per year. 
+
+# PCP Rates Per Quarter
+When we restrict our analysis to the population of patients who visited during the same quarter, the PCP rates show slightly different results. 
+The Non-Hispanic White patients still have a higher PCP rate, but the Marshallese do have a statistically different rate (p-value of 0.019.)
+Both groups have fewer PCP over the next three years with statistically different rates. The Non-Hispanic White group PCP rate changed by `r gee_mod_DID_PCP_yr_bal$ coefficients [3]` per year, while the Marshallese had a larger change of `r gee_mod_DID_PCP_qtr$ coefficients [3] + gee_mod_DID_PCP_qtr $ coefficients [4]` per year. 
+
+
+## Existing Patients from 2019 (Balanced Panel PCP Rate Per Quarter)
+! This model output confuses me. 
+The average number of PCP visits for those who visited that quarter between the Non-Hispanic White was `r gee_mod_DID_PCP_qtr_bal$ coefficients [1]`. In this analysis, the Marshallese patients were not statistically different, with a p-value of 0.96.
+Also the rate of change for the Non-Hispanic Whites was not statistically different than zero. There was no significant change. 
+However, the rate of change for the Marshallese over the three years was significant, at `r gee_mod_DID_PCP_qtr_bal$ coefficients [3] + gee_mod_DID_PCP_qtr_bal$ coefficients [4]` per year, with a p-value < 0.001.
+
 ```{r}
 
-summary(gee_mod_DID_PCP_yr)
-summary(gee_mod_DID_PCP_yr_bal)
 
-summary(gee_mod_DID_PCP_qtr)
-summary(gee_mod_DID_PCP_qtr_bal)
 
 summary(gee_mod_DID_ER_yr)
 summary(gee_mod_DID_ER_yr_bal)
@@ -226,13 +265,68 @@ summary(gee_mod_DID_ER_yr_bal)
 summary(gee_mod_DID_ER_qtr)
 summary(gee_mod_DID_ER_qtr_bal)
 
+summary(gee_mod_DID_PCP_yr)
+summary(gee_mod_DID_PCP_yr_bal)
 
+summary(gee_mod_DID_PCP_qtr)
+summary(gee_mod_DID_PCP_qtr_bal)
 
 #knitr::kable(twobytwo, caption = "Contingency table of whether patient achieved complete remission by treatment group.")
 ```
 
 
+# Some Visuals that need work 
 
-# Primary Care Provider Visits
+```{r, include= TRUE}
+# Visuals 
 
-!
+#ER 
+#colnames(did_visit_types_year)
+
+# no! takes forever to load! 
+# 
+# did_visit_types_year %>% 
+#   ggplot(aes(x = Date, y = ER, col = marsh))+
+#   geom_jitter()+
+
+
+ggplot()+
+  geom_abline( intercept =(gee_mod_DID_ER_yr$coefficients[1] + gee_mod_DID_ER_yr$coefficients[2]), 
+               slope= (gee_mod_DID_ER_yr$coefficients[3] + gee_mod_DID_ER_yr$coefficients[4]), col = "blue")+ # line for Marshallese
+  geom_abline( intercept = (gee_mod_DID_ER_yr$coefficients[1]), 
+               slope= gee_mod_DID_ER_yr$coefficients[3], col = "red")+ # line for Non-Hispanic White
+  xlim(c(-1,4))+
+  labs(title= "Rates of Emergency Room Utilization")
+  
+
+
+ggplot()+
+  geom_abline( intercept =(gee_mod_DID_PCP_yr$coefficients[1] + gee_mod_DID_PCP_yr$coefficients[2]), 
+               slope= (gee_mod_DID_PCP_yr$coefficients[3] + gee_mod_DID_PCP_yr$coefficients[4]), col = "blue")+ # line for Marshallese
+  geom_abline( intercept = (gee_mod_DID_PCP_yr$coefficients[1]), 
+               slope= gee_mod_DID_PCP_yr$coefficients[3], col = "red")+ # line for Non-Hispanic White
+  xlim(c(-1,4))+
+  labs(title= "Rates of Primary Care Provider Utilization")
+
+
+
+# graph number of all visits? 
+#table_all_visit_types_wider <- read.csv("~/BIOST CLASSES/597 Capstone with Lloyd Mancl/597 Capstone/CHAS-capstone/Analysis Data/table_all_visit_types_wider.csv")
+
+
+table_all_visit_types <- as.data.frame( with(all_visit_types, table(ServiceLine,year, marsh)) ) #, useNA = "always"
+
+
+# this is a good visual idea but we need rates instead of total counts to show any Marshallese on the scale! 
+table_all_visit_types %>% filter( year != 2025, year != 2016) %>%
+  ggplot(aes(x = year, y = Freq, col = marsh))+
+  geom_point()+
+  facet_wrap(~ServiceLine)
+
+
+# add a column with total population size for each year, then mutate to get the rate? 
+# can adjust code from other DIDVisuals.R file
+
+
+```
+
