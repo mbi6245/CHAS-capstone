@@ -43,7 +43,7 @@ o1_bppp = o1_bp %>%
   left_join(y=o1_bp_pre, by="UniqueIdentifier") %>% 
   left_join(y=o1_bp_post, by="UniqueIdentifier") %>% 
   mutate(
-    Sex = ifelse(o1_bppp$Sex == "M", 1, 0),
+    # Sex = ifelse(o1_bppp$Sex == "M", 1, 0),
     koh_cat = case_when(
       KOH.none == 1 ~ "None",
       KOH.one == 1 ~ "One",
