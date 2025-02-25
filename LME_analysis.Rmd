@@ -33,6 +33,30 @@ bp <- bp %>% mutate(koh.cat = case_when(KOH.none == 1 ~ 'None',
                                         KOH.mult == 1 ~ 'Multiple'))
 bp$koh.cat <- factor(bp$koh.cat, levels=c("None","One","Multiple"))
 bp$male <- ifelse(bp$Sex == 'M', 1, 0)
+bp$month.exact <- bp$time.from.koh1 / 30.4
+bp <- bp %>% mutate(month.from.koh1 = case_when(month.exact == 0 ~ 0,
+                                                month.exact > 0 & month.exact <= 1 ~ 1,
+                                                month.exact > 1 & month.exact <= 2 ~ 2,
+                                                month.exact > 2 & month.exact <= 3 ~ 3,
+                                                month.exact > 3 & month.exact <= 4 ~ 4,
+                                                month.exact > 4 & month.exact <= 5 ~ 5,
+                                                month.exact > 5 & month.exact <= 6 ~ 6,
+                                                month.exact > 6 & month.exact <= 7 ~ 7,
+                                                month.exact > 7 & month.exact <= 8 ~ 8,
+                                                month.exact > 8 & month.exact <= 9 ~ 9,
+                                                month.exact > 9 & month.exact <= 10 ~ 10,
+                                                month.exact > 10 & month.exact <= 11 ~ 11,
+                                                month.exact > 11 & month.exact <= 12 ~ 12,
+                                                month.exact > 12 & month.exact <= 13 ~ 13,
+                                                month.exact > 13 & month.exact <= 14 ~ 14,
+                                                month.exact > 14 & month.exact <= 15 ~ 15,
+                                                month.exact > 15 & month.exact <= 16 ~ 16,
+                                                month.exact > 16 & month.exact <= 17 ~ 17,
+                                                month.exact > 17 & month.exact <= 18 ~ 18,
+                                                month.exact > 18 & month.exact <= 19 ~ 19,
+                                                month.exact > 19 & month.exact <= 20 ~ 20,
+                                                month.exact > 20 & month.exact <= 21 ~ 21,
+                                                month.exact > 21 & month.exact <= 22 ~ 22))
 
 ggplot(data= bp, 
        aes(x=time.from.koh1, y=Systolic, group=UniqueIdentifier, colour=koh.cat))+
@@ -40,22 +64,23 @@ ggplot(data= bp,
   xlab("Time (days)") + ylab("Systolic Blood Pressure (mmHg)") + theme_bw() +
   guides(colour = guide_legend(title = "KOH Attendance"))
 
-summary_bp <- bp %>% group_by(koh.cat, time.from.koh1) %>%
+summary_bp <- bp %>% group_by(koh.cat, month.from.koh1) %>%
   summarise(mean_bp = mean(Systolic))
-
+str(bp)
 ggplot(data=summary_bp, 
-       aes(x=time.from.koh1, y=mean_bp, group=koh.cat, colour=koh.cat))+ 
+       aes(x=month.from.koh1, y=mean_bp, group=koh.cat, colour=koh.cat))+ 
    geom_smooth(method=loess, se=FALSE, linewidth=0.75) + 
-  xlab("Time (days)") + ylab("Systolic Blood Pressure (mmHg)") + theme_bw() +
-  guides(colour = guide_legend(title = "KOH Attendance")) + coord_cartesian(ylim=c(108,147))
+  xlab("Time (months)") + ylab("Systolic Blood Pressure (mmHg)") + theme_bw() +
+  guides(colour = guide_legend(title = "KOH Attendance")) + xlim(0,12)
 ```
 
 
 ```{r}
+bp.1yr <- bp %>% filter(month.from.koh1 <= 12)
 bp.mod1 <- lme(
-  fixed = Systolic ~ time.from.koh1 * koh.cat + age + male + IncomeLevel + BLACERISK + avg.bmi,
-  random = ~ time.from.koh1 | UniqueIdentifier,
-  data = bp,
+  fixed = Systolic ~ month.from.koh1 * koh.cat + age + male + IncomeLevel + BLACERISK + avg.bmi,
+  random = ~ month.from.koh1 | UniqueIdentifier,
+  data = bp.1yr,
   method = "REML"
 )
 summary(bp.mod1)
