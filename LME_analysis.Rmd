@@ -57,26 +57,30 @@ bp <- bp %>% mutate(month.from.koh1 = case_when(month.exact == 0 ~ 0,
                                                 month.exact > 19 & month.exact <= 20 ~ 20,
                                                 month.exact > 20 & month.exact <= 21 ~ 21,
                                                 month.exact > 21 & month.exact <= 22 ~ 22))
+length(unique(bp.1yr$UniqueIdentifier))
+bp.1yr <- bp %>% filter(month.from.koh1 <= 12)
+bp.1yr.counts <- bp.1yr %>% group_by(UniqueIdentifier) %>% count(name = "freq")
+bp.1yr <- full_join(bp.1yr, bp.1yr.counts, by="UniqueIdentifier")
+bp.1yr <- bp.1yr %>% filter(freq > 1)
 
-ggplot(data= bp, 
-       aes(x=time.from.koh1, y=Systolic, group=UniqueIdentifier, colour=koh.cat))+
+ggplot(data= bp.1yr, 
+       aes(x=month.from.koh1, y=Systolic, group=UniqueIdentifier, colour=koh.cat))+
   geom_line() +
   xlab("Time (days)") + ylab("Systolic Blood Pressure (mmHg)") + theme_bw() +
   guides(colour = guide_legend(title = "KOH Attendance"))
 
-summary_bp <- bp %>% group_by(koh.cat, month.from.koh1) %>%
+summary_bp <- bp.1yr %>% group_by(koh.cat, month.from.koh1) %>%
   summarise(mean_bp = mean(Systolic))
-str(bp)
+
 ggplot(data=summary_bp, 
        aes(x=month.from.koh1, y=mean_bp, group=koh.cat, colour=koh.cat))+ 
    geom_smooth(method=loess, se=FALSE, linewidth=0.75) + 
   xlab("Time (months)") + ylab("Systolic Blood Pressure (mmHg)") + theme_bw() +
-  guides(colour = guide_legend(title = "KOH Attendance")) + xlim(0,12)
+  guides(colour = guide_legend(title = "KOH Attendance"))
 ```
-
-
+need to take out first bps for patients who don't have measurements within 1 year
+taking out patients that don't have a post measurement within 1 year removes 7 patients: 6 none and 1 multiple. now there are 120 analyzable patients
 ```{r}
-bp.1yr <- bp %>% filter(month.from.koh1 <= 12)
 bp.mod1 <- lme(
   fixed = Systolic ~ month.from.koh1 * koh.cat + age + male + IncomeLevel + BLACERISK + avg.bmi,
   random = ~ month.from.koh1 | UniqueIdentifier,
@@ -94,6 +98,7 @@ intervals(bp.mod1)
 a1c <- read.csv('Analysis Data/Obj1A1c_LME.csv')[,-1]
 ```
 
+removed 21 none, 1 one, and 2 multiple. now there are 197 analyzable patients
 ```{r cars}
 # standardizing time as days from baseline measurement
 a1c.first <- a1c %>% group_by(UniqueIdentifier) %>% arrange(A1cDate, .by_group=TRUE) %>% slice_head()
@@ -107,30 +112,61 @@ a1c <- a1c %>% mutate(koh.cat = case_when(KOH.none == 1 ~ 'None',
                                         KOH.mult == 1 ~ 'Multiple'))
 a1c$koh.cat <- factor(a1c$koh.cat, levels=c("None","One","Multiple"))
 a1c$male <- ifelse(a1c$Sex == 'M', 1, 0)
+a1c$month.exact <- a1c$time.from.koh1 / 30.4
+a1c <- a1c %>% mutate(month.from.koh1 = case_when(month.exact == 0 ~ 0,
+                                                month.exact > 0 & month.exact <= 1 ~ 1,
+                                                month.exact > 1 & month.exact <= 2 ~ 2,
+                                                month.exact > 2 & month.exact <= 3 ~ 3,
+                                                month.exact > 3 & month.exact <= 4 ~ 4,
+                                                month.exact > 4 & month.exact <= 5 ~ 5,
+                                                month.exact > 5 & month.exact <= 6 ~ 6,
+                                                month.exact > 6 & month.exact <= 7 ~ 7,
+                                                month.exact > 7 & month.exact <= 8 ~ 8,
+                                                month.exact > 8 & month.exact <= 9 ~ 9,
+                                                month.exact > 9 & month.exact <= 10 ~ 10,
+                                                month.exact > 10 & month.exact <= 11 ~ 11,
+                                                month.exact > 11 & month.exact <= 12 ~ 12,
+                                                month.exact > 12 & month.exact <= 13 ~ 13,
+                                                month.exact > 13 & month.exact <= 14 ~ 14,
+                                                month.exact > 14 & month.exact <= 15 ~ 15,
+                                                month.exact > 15 & month.exact <= 16 ~ 16,
+                                                month.exact > 16 & month.exact <= 17 ~ 17,
+                                                month.exact > 17 & month.exact <= 18 ~ 18,
+                                                month.exact > 18 & month.exact <= 19 ~ 19,
+                                                month.exact > 19 & month.exact <= 20 ~ 20,
+                                                month.exact > 20 & month.exact <= 21 ~ 21,
+                                                month.exact > 21 & month.exact <= 22 ~ 22))
 
-ggplot(data= a1c, 
-       aes(x=time.from.koh1, y=A1c, group=UniqueIdentifier, colour=koh.cat))+
+a1c.1yr <- a1c %>% filter(month.from.koh1 <= 12)
+a1c.1yr.counts <- a1c.1yr %>% group_by(UniqueIdentifier) %>% count(name = "freq")
+a1c.1yr <- full_join(a1c.1yr, a1c.1yr.counts, by="UniqueIdentifier")
+a1c.1yr %>% filter(freq == 1) %>% select(c(UniqueIdentifier,koh.cat))
+a1c.1yr <- a1c.1yr %>% filter(freq > 1)
+length(unique(a1c.1yr$UniqueIdentifier))
+
+ggplot(data= a1c.1yr, 
+       aes(x=month.from.koh1, y=A1c, group=UniqueIdentifier, colour=koh.cat))+
   geom_line() + 
   xlab("Time (days)") + ylab("A1c") + theme_bw() +
   guides(colour = guide_legend(title = "KOH Attendance"))
 
-summary_a1c <- a1c %>% group_by(koh.cat, time.from.koh1) %>%
+summary_a1c <- a1c.1yr %>% group_by(koh.cat, month.from.koh1) %>%
   summarise(mean_a1c = mean(A1c))
 
 ggplot(data=summary_a1c, 
-       aes(x=time.from.koh1, y=mean_a1c, group=koh.cat, colour=koh.cat))+
-   geom_smooth(method=loess, se=TRUE, linewidth=0.75) + 
+       aes(x=month.from.koh1, y=mean_a1c, group=koh.cat, colour=koh.cat))+
+   geom_smooth(method=loess, se=FALSE, linewidth=0.75) + 
   xlab("Time (days)") + ylab("A1c (%)") + theme_bw() +
-  guides(colour = guide_legend(title = "KOH Attendance")) 
+  guides(colour = guide_legend(title = "KOH Attendance"))
 
 ```
 
 
 ```{r}
 a1c.mod1 <- lme(
-  fixed = A1c ~ time.from.koh1 * koh.cat + age + male + IncomeLevel + BLACERISK + avg.bmi,
-  random = ~ time.from.koh1 | UniqueIdentifier,
-  data = a1c,
+  fixed = A1c ~ month.from.koh1 * koh.cat + age + male + IncomeLevel + BLACERISK + avg.bmi,
+  random = ~ month.from.koh1 | UniqueIdentifier,
+  data = a1c.1yr,
   method = "REML"
 )
 intervals(a1c.mod1)
