@@ -57,11 +57,17 @@ bp <- bp %>% mutate(month.from.koh1 = case_when(month.exact == 0 ~ 0,
                                                 month.exact > 19 & month.exact <= 20 ~ 20,
                                                 month.exact > 20 & month.exact <= 21 ~ 21,
                                                 month.exact > 21 & month.exact <= 22 ~ 22))
-length(unique(bp.1yr$UniqueIdentifier))
+
 bp.1yr <- bp %>% filter(month.from.koh1 <= 12)
 bp.1yr.counts <- bp.1yr %>% group_by(UniqueIdentifier) %>% count(name = "freq")
 bp.1yr <- full_join(bp.1yr, bp.1yr.counts, by="UniqueIdentifier")
 bp.1yr <- bp.1yr %>% filter(freq > 1)
+length(unique(bp.1yr$UniqueIdentifier))
+bp.1yr.pts <- bp.1yr %>% distinct(UniqueIdentifier)
+a1c.1yr.pts <- a1c.1yr %>% distinct(UniqueIdentifier)
+obj1.1yr.pts <- rbind(bp.1yr.pts, a1c.1yr.pts)
+obj1.1yr.pts <- obj1.1yr.pts %>% distinct(UniqueIdentifier)
+#write.csv(obj1.1yr.pts, 'Analysis Data/Obj1_1yr_Pts.csv')
 
 ggplot(data= bp.1yr, 
        aes(x=month.from.koh1, y=Systolic, group=UniqueIdentifier, colour=koh.cat))+
@@ -88,10 +94,10 @@ bp.mod1 <- lme(
   method = "REML"
 )
 summary(bp.mod1)
-intervals(bp.mod1)
--0.134937540 * 365
--4.799116e-02 * 365
-0.03895521 * 365
+intervals(bp.mod1, which="fixed")
+-3.78554514 * 12
+-0.5294044 * 12
+0.38580704 * 12
 ```
 
 ```{r}
@@ -142,7 +148,6 @@ a1c.1yr.counts <- a1c.1yr %>% group_by(UniqueIdentifier) %>% count(name = "freq"
 a1c.1yr <- full_join(a1c.1yr, a1c.1yr.counts, by="UniqueIdentifier")
 a1c.1yr %>% filter(freq == 1) %>% select(c(UniqueIdentifier,koh.cat))
 a1c.1yr <- a1c.1yr %>% filter(freq > 1)
-length(unique(a1c.1yr$UniqueIdentifier))
 
 ggplot(data= a1c.1yr, 
        aes(x=month.from.koh1, y=A1c, group=UniqueIdentifier, colour=koh.cat))+
@@ -156,7 +161,7 @@ summary_a1c <- a1c.1yr %>% group_by(koh.cat, month.from.koh1) %>%
 ggplot(data=summary_a1c, 
        aes(x=month.from.koh1, y=mean_a1c, group=koh.cat, colour=koh.cat))+
    geom_smooth(method=loess, se=FALSE, linewidth=0.75) + 
-  xlab("Time (days)") + ylab("A1c (%)") + theme_bw() +
+  xlab("Time (months)") + ylab("A1c (%)") + theme_bw() +
   guides(colour = guide_legend(title = "KOH Attendance"))
 
 ```
@@ -170,9 +175,9 @@ a1c.mod1 <- lme(
   method = "REML"
 )
 intervals(a1c.mod1)
--0.001825579 * 365
-5.402657e-05 * 365
-0.0019336320 * 365
+-0.067383142 * 12
+0.022017191 * 12
+0.111417523 * 12
 summary(a1c.mod1)
 ```
 
