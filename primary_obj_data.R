@@ -25,7 +25,8 @@ koh.bp.elig <- left_join(koh.htn.elig.patlist, koh.bp, by = "UniqueIdentifier")
 
 
 # getting the date of first visit attended
-koh.mtg1 <- koh.attend.18 %>% group_by(UniqueIdentifier) %>% arrange(Date, .by_group=TRUE) %>% slice_head() %>% select(c("UniqueIdentifier", "Date")) %>% rename(KOHDate = Date)
+koh.mtg1 <- koh.attend.18 %>% group_by(UniqueIdentifier) %>% arrange(Date, .by_group=TRUE) %>% slice_head() %>% 
+  select(c("UniqueIdentifier", "Date")) %>% rename(KOHDate = Date)
 
 # merging with eligble bp table to find "pre" BP reading closest to first KOH meeting
 koh.mtg1.bp <- right_join(koh.mtg1, koh.bp.elig, by="UniqueIdentifier") %>% 
@@ -37,7 +38,8 @@ koh.bp.pre <- koh.mtg1.bp %>% filter(datediff<=0) %>% group_by(UniqueIdentifier)
   rename(KOH.start.dt = KOHDate, BPDate.pre = BPDate, sys.pre = Systolic, dia.pre = Diastolic)
 
 # now finding the most recent BP measure for "post" KOH
-koh.bp.post <- koh.mtg1.bp %>% filter(datediff>0) %>% group_by(UniqueIdentifier) %>% arrange(desc(datediff), .by_group=TRUE) %>% slice_head() %>% select(-(datediff)) %>%
+koh.bp.post <- koh.mtg1.bp %>% filter(datediff>0 & datediff<=365) %>% group_by(UniqueIdentifier) %>% 
+  arrange(desc(datediff), .by_group=TRUE) %>% slice_head() %>% select(-(datediff)) %>%
   rename(KOH.start.dt = KOHDate, BPDate.post = BPDate, sys.post = Systolic, dia.post = Diastolic)
 
 # now merging together the pre and post datasets to find patients that have both timepoints
@@ -63,11 +65,13 @@ marsh.non.bp.elig <- marsh.non.bp.elig %>% rename(BPDate = Date) %>%
   mutate(datediff = as.numeric(difftime(BPDate, KOHDate, units="days")))
 
 # these are all the "pre" KOH BP measurements
-marsh.non.bp.pre <- marsh.non.bp.elig %>% filter(datediff<=0) %>% group_by(UniqueIdentifier) %>% arrange(desc(datediff), .by_group=TRUE) %>% slice_head() %>% select(-(datediff)) %>%
+marsh.non.bp.pre <- marsh.non.bp.elig %>% filter(datediff<=0) %>% group_by(UniqueIdentifier) %>% 
+  arrange(desc(datediff), .by_group=TRUE) %>% slice_head() %>% select(-(datediff)) %>%
   rename(KOH.start.dt = KOHDate, BPDate.pre = BPDate, sys.pre = Systolic, dia.pre = Diastolic)
 
 # now finding the most recent BP measure for "post" KOH
-marsh.non.bp.post <- marsh.non.bp.elig %>% filter(datediff>0) %>% group_by(UniqueIdentifier) %>% arrange(desc(datediff), .by_group=TRUE) %>% slice_head() %>% select(-(datediff)) %>%
+marsh.non.bp.post <- marsh.non.bp.elig %>% filter(datediff>0 & datediff<=365) %>% group_by(UniqueIdentifier) %>% 
+  arrange(desc(datediff), .by_group=TRUE) %>% slice_head() %>% select(-(datediff)) %>%
   rename(KOH.start.dt = KOHDate, BPDate.post = BPDate, sys.post = Systolic, dia.post = Diastolic)
 
 # now merging together the pre and post datasets to find patients that have both timepoints
@@ -109,11 +113,12 @@ obj1.bp.cov <- table1 %>% select(c(UniqueIdentifier, age, Sex, IncomeLevel, BLAC
 obj1.bp.pre.post.full <- left_join(obj1.bp.pre.post, obj1.bp.cov, by="UniqueIdentifier")
 
 # these are all the "pre" KOH BP measurements
-koh.bp.pre.all <- koh.mtg1.bp %>% filter(datediff<=0) %>% group_by(UniqueIdentifier) %>% arrange(desc(datediff), .by_group=TRUE) %>% slice_head() %>% select(-(datediff)) %>%
+koh.bp.pre.all <- koh.mtg1.bp %>% filter(datediff<=0) %>% group_by(UniqueIdentifier) %>% 
+  arrange(desc(datediff), .by_group=TRUE) %>% slice_head() %>% select(-(datediff)) %>%
   rename(KOH.start.dt = KOHDate)
 
 # now finding all BP measures for "post" KOH
-koh.bp.post.all <- koh.mtg1.bp %>% filter(datediff>0) %>% select(-(datediff)) %>%
+koh.bp.post.all <- koh.mtg1.bp %>% filter(datediff>0 & datediff<=365) %>% select(-(datediff)) %>%
   rename(KOH.start.dt = KOHDate)
 # combining baseline and subsequent measurements
 koh.bp.all <- bind_rows(koh.bp.pre.all, koh.bp.post.all)
@@ -123,11 +128,12 @@ koh.bp.all.elig <- left_join(koh.bp.pre.post.pt, koh.bp.all, by = "UniqueIdentif
 koh.bp.all.elig$KOH <- 1
 
 # these are all the "pre" KOH BP measurements
-marsh.non.bp.pre.all <- marsh.non.bp.elig %>% filter(datediff<=0) %>% group_by(UniqueIdentifier) %>% arrange(desc(datediff), .by_group=TRUE) %>% slice_head() %>% select(-(datediff)) %>%
+marsh.non.bp.pre.all <- marsh.non.bp.elig %>% filter(datediff<=0) %>% group_by(UniqueIdentifier) %>% 
+  arrange(desc(datediff), .by_group=TRUE) %>% slice_head() %>% select(-(datediff)) %>%
   rename(KOH.start.dt = KOHDate)
 
 # now finding all BP measures for "post" KOH
-marsh.non.bp.post.all <- marsh.non.bp.elig %>% filter(datediff>0) %>% select(-(datediff)) %>%
+marsh.non.bp.post.all <- marsh.non.bp.elig %>% filter(datediff>0 & datediff<=365) %>% select(-(datediff)) %>%
   rename(KOH.start.dt = KOHDate)
 # combining baseline and subsequent measurements
 marsh.non.bp.all <- bind_rows(marsh.non.bp.pre.all, marsh.non.bp.post.all)
@@ -167,11 +173,12 @@ koh.mtg1.a1c <- right_join(koh.mtg1, koh.a1c.elig, by="UniqueIdentifier") %>%
   mutate(datediff = as.numeric(difftime(A1cDate, KOHDate, units="days")))
 
 # these are all the "pre" KOH A1c measurements
-koh.a1c.pre <- koh.mtg1.a1c %>% filter(datediff<=0) %>% group_by(UniqueIdentifier) %>% arrange(desc(datediff), .by_group=TRUE) %>% slice_head() %>% select(-(datediff)) %>%
+koh.a1c.pre <- koh.mtg1.a1c %>% filter(datediff<=0) %>% group_by(UniqueIdentifier) %>% arrange(desc(datediff), .by_group=TRUE) %>% 
+  slice_head() %>% select(-(datediff)) %>%
   rename(KOH.start.dt = KOHDate, A1cDate.pre = A1cDate, A1c.pre = A1c)
 
 # now finding the most recent A1c measure for "post" KOH
-koh.a1c.post <- koh.mtg1.a1c %>% filter(datediff>0) %>% group_by(UniqueIdentifier) %>% arrange(desc(datediff), .by_group=TRUE) %>% slice_head() %>% select(-(datediff)) %>%
+koh.a1c.post <- koh.mtg1.a1c %>% filter(datediff>0 & datediff<=365) %>% group_by(UniqueIdentifier) %>% arrange(desc(datediff), .by_group=TRUE) %>% slice_head() %>% select(-(datediff)) %>%
   rename(KOH.start.dt = KOHDate, A1cDate.post = A1cDate, A1c.post = A1c)
 
 # now merging together the pre and post datasets to find patients that have both timepoints
@@ -197,11 +204,13 @@ marsh.non.a1c.elig <- marsh.non.a1c.elig %>% rename(A1cDate = Date) %>%
   mutate(datediff = as.numeric(difftime(A1cDate, KOHDate, units="days")))
 
 # these are all the "pre" KOH A1c measurements
-marsh.non.a1c.pre <- marsh.non.a1c.elig %>% filter(datediff<=0) %>% group_by(UniqueIdentifier) %>% arrange(desc(datediff), .by_group=TRUE) %>% slice_head() %>% select(-(datediff)) %>%
+marsh.non.a1c.pre <- marsh.non.a1c.elig %>% filter(datediff<=0) %>% group_by(UniqueIdentifier) %>% 
+  arrange(desc(datediff), .by_group=TRUE) %>% slice_head() %>% select(-(datediff)) %>%
   rename(KOH.start.dt = KOHDate, A1cDate.pre = A1cDate, A1c.pre = A1c)
 
 # now finding the most recent A1c measure for "post" KOH
-marsh.non.a1c.post <- marsh.non.a1c.elig %>% filter(datediff>0) %>% group_by(UniqueIdentifier) %>% arrange(desc(datediff), .by_group=TRUE) %>% slice_head() %>% select(-(datediff)) %>%
+marsh.non.a1c.post <- marsh.non.a1c.elig %>% filter(datediff>0 & datediff<=365) %>% group_by(UniqueIdentifier) %>% 
+  arrange(desc(datediff), .by_group=TRUE) %>% slice_head() %>% select(-(datediff)) %>%
   rename(KOH.start.dt = KOHDate, A1cDate.post = A1cDate, A1c.post = A1c)
 
 # now merging together the pre and post datasets to find patients that have both timepoints
@@ -245,11 +254,12 @@ obj1.a1c.pre.post.full <- obj1.a1c.pre.post.full %>% group_by(UniqueIdentifier, 
   slice_head() %>% mutate(A1c = avg.a1c) %>% select(-avg.a1c)
 
 # these are all the "pre" KOH A1c measurements
-koh.a1c.pre.all <- koh.mtg1.a1c %>% filter(datediff<=0) %>% group_by(UniqueIdentifier) %>% arrange(desc(datediff), .by_group=TRUE) %>% slice_head() %>% select(-(datediff)) %>%
+koh.a1c.pre.all <- koh.mtg1.a1c %>% filter(datediff<=0) %>% group_by(UniqueIdentifier) %>% arrange(desc(datediff), .by_group=TRUE) %>% 
+  slice_head() %>% select(-(datediff)) %>%
   rename(KOH.start.dt = KOHDate)
 
 # now finding all A1c measures for "post" KOH
-koh.a1c.post.all <- koh.mtg1.a1c %>% filter(datediff>0) %>% select(-(datediff)) %>%
+koh.a1c.post.all <- koh.mtg1.a1c %>% filter(datediff>0 & datediff<=365) %>% select(-(datediff)) %>%
   rename(KOH.start.dt = KOHDate)
 # combining baseline and subsequent measurements
 koh.a1c.all <- bind_rows(koh.a1c.pre.all, koh.a1c.post.all)
@@ -259,11 +269,12 @@ koh.a1c.all.elig <- left_join(koh.a1c.pre.post.pt, koh.a1c.all, by = "UniqueIden
 koh.a1c.all.elig$KOH <- 1
 
 # these are all the "pre" KOH A1c measurements
-marsh.non.a1c.pre.all <- marsh.non.a1c.elig %>% filter(datediff<=0) %>% group_by(UniqueIdentifier) %>% arrange(desc(datediff), .by_group=TRUE) %>% slice_head() %>% select(-(datediff)) %>%
+marsh.non.a1c.pre.all <- marsh.non.a1c.elig %>% filter(datediff<=0) %>% group_by(UniqueIdentifier) %>% 
+  arrange(desc(datediff), .by_group=TRUE) %>% slice_head() %>% select(-(datediff)) %>%
   rename(KOH.start.dt = KOHDate)
 
 # now finding all A1c measures for "post" KOH
-marsh.non.a1c.post.all <- marsh.non.a1c.elig %>% filter(datediff>0) %>% select(-(datediff)) %>%
+marsh.non.a1c.post.all <- marsh.non.a1c.elig %>% filter(datediff>0 & datediff<=365) %>% select(-(datediff)) %>%
   rename(KOH.start.dt = KOHDate)
 # combining baseline and subsequent measurements
 marsh.non.a1c.all <- bind_rows(marsh.non.a1c.pre.all, marsh.non.a1c.post.all)
@@ -300,10 +311,18 @@ write.csv(obj1, 'Analysis Data/Obj1_AllPts.csv')
 
 obj1.impute <- obj1 %>% select(c(UniqueIdentifier, KOH, koh.counts, HTN, PreDM, T2DM, Diabetes, both, age, Ethnicity, Race, Sex, 
                                  Language, No.column.name, IncomeLevel, BLACERISK, avg.bmi, death))
-
+#missing.val <- obj1.impute %>% filter(is.na(IncomeLevel) | is.na(BLACERISK) | is.na(avg.bmi)) %>% 
+ # select(c(UniqueIdentifier, IncomeLevel, BLACERISK, avg.bmi)) 
 set.seed(1)
 obj1.mult.imput <- missRanger(obj1.impute, . ~ .-UniqueIdentifier, pmm.k=3, num.trees=100, verbose=F)
 obj1.mult.imput.var <- obj1.mult.imput %>% select(c(UniqueIdentifier, IncomeLevel, BLACERISK, avg.bmi))
+
+#obj1.multiimputed <- replicate(
+ # 10, 
+  #missRanger(obj1.impute, . ~ .-UniqueIdentifier, pmm.k=3, num.trees=100, verbose=F), 
+  #simplify = FALSE
+#)
+#mean.imput <- obj1.multiimputed %>% group_by(UniqueIdentifier) %>% select(c(UniqueIdentifier, mean(IncomeLevel)))
 
 
 # add the imputed data to the datasets
