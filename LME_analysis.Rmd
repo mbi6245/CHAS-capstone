@@ -14,7 +14,6 @@ library(nlme)
 ```
 note to self: run regression diagnostics and ignore clustering - regular linear regression and see if any observations are having huge impact
 change days to months
-truncate analysis after 1 year
 
 ```{r}
 bp <- read.csv('Analysis Data/Obj1BP_LME.csv')[,-1]
@@ -46,36 +45,27 @@ bp <- bp %>% mutate(month.from.koh1 = case_when(month.exact == 0 ~ 0,
                                                 month.exact > 8 & month.exact <= 9 ~ 9,
                                                 month.exact > 9 & month.exact <= 10 ~ 10,
                                                 month.exact > 10 & month.exact <= 11 ~ 11,
-                                                month.exact > 11 & month.exact <= 12 ~ 12,
-                                                month.exact > 12 & month.exact <= 13 ~ 13,
-                                                month.exact > 13 & month.exact <= 14 ~ 14,
-                                                month.exact > 14 & month.exact <= 15 ~ 15,
-                                                month.exact > 15 & month.exact <= 16 ~ 16,
-                                                month.exact > 16 & month.exact <= 17 ~ 17,
-                                                month.exact > 17 & month.exact <= 18 ~ 18,
-                                                month.exact > 18 & month.exact <= 19 ~ 19,
-                                                month.exact > 19 & month.exact <= 20 ~ 20,
-                                                month.exact > 20 & month.exact <= 21 ~ 21,
-                                                month.exact > 21 & month.exact <= 22 ~ 22))
+                                                month.exact > 11 & time.from.koh1 <= 365 ~ 12))
 
-bp.1yr <- bp %>% filter(month.from.koh1 <= 12)
-bp.1yr.counts <- bp.1yr %>% group_by(UniqueIdentifier) %>% count(name = "freq")
-bp.1yr <- full_join(bp.1yr, bp.1yr.counts, by="UniqueIdentifier")
-bp.1yr <- bp.1yr %>% filter(freq > 1)
-length(unique(bp.1yr$UniqueIdentifier))
-bp.1yr.pts <- bp.1yr %>% distinct(UniqueIdentifier)
-a1c.1yr.pts <- a1c.1yr %>% distinct(UniqueIdentifier)
-obj1.1yr.pts <- rbind(bp.1yr.pts, a1c.1yr.pts)
-obj1.1yr.pts <- obj1.1yr.pts %>% distinct(UniqueIdentifier)
-#write.csv(obj1.1yr.pts, 'Analysis Data/Obj1_1yr_Pts.csv')
+bp <- bp %>% mutate(quart.from.koh1 = case_when(month.exact == 0 ~ 0,
+                                                month.exact > 0 & month.exact <= 3 ~ 1,
+                                                month.exact > 3 & month.exact <= 6 ~ 2,
+                                                month.exact > 6 & month.exact <= 9 ~ 3,
+                                                month.exact > 9 & time.from.koh1 <= 365 ~ 4))
 
-ggplot(data= bp.1yr, 
+ggplot(data= bp, 
        aes(x=month.from.koh1, y=Systolic, group=UniqueIdentifier, colour=koh.cat))+
-  geom_line() +
-  xlab("Time (days)") + ylab("Systolic Blood Pressure (mmHg)") + theme_bw() +
+  geom_line() + 
+  xlab("Time (months)") + ylab("Systolic Blood Pressure (mmHg)") + theme_bw() +
   guides(colour = guide_legend(title = "KOH Attendance"))
 
-summary_bp <- bp.1yr %>% group_by(koh.cat, month.from.koh1) %>%
+ggplot(data= bp, 
+       aes(x=quart.from.koh1, y=Systolic, group=UniqueIdentifier, colour=koh.cat))+
+  geom_line() +
+  xlab("Time (3 months)") + ylab("Systolic Blood Pressure (mmHg)") + theme_bw() +
+  guides(colour = guide_legend(title = "KOH Attendance"))
+
+summary_bp <- bp %>% group_by(koh.cat, month.from.koh1) %>%
   summarise(mean_bp = mean(Systolic))
 
 ggplot(data=summary_bp, 
@@ -83,21 +73,43 @@ ggplot(data=summary_bp,
    geom_smooth(method=loess, se=FALSE, linewidth=0.75) + 
   xlab("Time (months)") + ylab("Systolic Blood Pressure (mmHg)") + theme_bw() +
   guides(colour = guide_legend(title = "KOH Attendance"))
+
+summary_bp <- bp %>% group_by(koh.cat, quart.from.koh1) %>%
+  summarise(mean_bp = mean(Systolic))
+
+ggplot(data=summary_bp, 
+       aes(x=quart.from.koh1, y=mean_bp, group=koh.cat, colour=koh.cat))+ 
+   geom_smooth(method=loess, se=FALSE, linewidth=0.75) + 
+  xlab("Time (months)") + ylab("Systolic Blood Pressure (mmHg)") + theme_bw() +
+  guides(colour = guide_legend(title = "KOH Attendance"))
 ```
 need to take out first bps for patients who don't have measurements within 1 year
 taking out patients that don't have a post measurement within 1 year removes 7 patients: 6 none and 1 multiple. now there are 120 analyzable patients
+by month: time x one: 	-1.52430841 (-3.75803035, 0.70941354) (p=0.18); time x multiple: -0.49815691 (-1.41733394, 0.42102011) (p=0.29)
+              one:    5.27758690 (-4.03307467, 14.58824848) (p=0.26); multiple: 2.64455146 (-4.68902241 , 9.97812532) (p=0.48)
+              time: 0.32826116 (-0.11001054 , 0.76653286) (p=0.14)
+              
+by quarter: time x one: 	-2.28608584 (-8.36103190, 3.78886021) (p=0.46); time x multiple: -1.40703231 (-4.07497335, 1.26090873) (p=0.30)
+              one:    4.32897744 (-5.56940096, 14.22735584) (p=0.39); multiple: 2.87344149 (-4.76596121, 10.51284419) (p=0.46)
+              time: 1.01610547 (-0.25623046, 2.28844140) (p=0.12)
 ```{r}
 bp.mod1 <- lme(
   fixed = Systolic ~ month.from.koh1 * koh.cat + age + male + IncomeLevel + BLACERISK + avg.bmi,
   random = ~ month.from.koh1 | UniqueIdentifier,
-  data = bp.1yr,
+  data = bp,
   method = "REML"
 )
 summary(bp.mod1)
-intervals(bp.mod1, which="fixed")
--3.78554514 * 12
--0.5294044 * 12
-0.38580704 * 12
+intervals(bp.mod1)
+
+bp.mod1.2 <- lme(
+  fixed = Systolic ~ quart.from.koh1 * koh.cat + age + male + IncomeLevel + BLACERISK + avg.bmi,
+  random = ~ quart.from.koh1 | UniqueIdentifier,
+  data = bp,
+  method = "REML"
+)
+summary(bp.mod1.2)
+intervals(bp.mod1.2)
 ```
 
 ```{r}
@@ -131,54 +143,63 @@ a1c <- a1c %>% mutate(month.from.koh1 = case_when(month.exact == 0 ~ 0,
                                                 month.exact > 8 & month.exact <= 9 ~ 9,
                                                 month.exact > 9 & month.exact <= 10 ~ 10,
                                                 month.exact > 10 & month.exact <= 11 ~ 11,
-                                                month.exact > 11 & month.exact <= 12 ~ 12,
-                                                month.exact > 12 & month.exact <= 13 ~ 13,
-                                                month.exact > 13 & month.exact <= 14 ~ 14,
-                                                month.exact > 14 & month.exact <= 15 ~ 15,
-                                                month.exact > 15 & month.exact <= 16 ~ 16,
-                                                month.exact > 16 & month.exact <= 17 ~ 17,
-                                                month.exact > 17 & month.exact <= 18 ~ 18,
-                                                month.exact > 18 & month.exact <= 19 ~ 19,
-                                                month.exact > 19 & month.exact <= 20 ~ 20,
-                                                month.exact > 20 & month.exact <= 21 ~ 21,
-                                                month.exact > 21 & month.exact <= 22 ~ 22))
+                                                month.exact > 11 & time.from.koh1 <= 365 ~ 12))
 
-a1c.1yr <- a1c %>% filter(month.from.koh1 <= 12)
-a1c.1yr.counts <- a1c.1yr %>% group_by(UniqueIdentifier) %>% count(name = "freq")
-a1c.1yr <- full_join(a1c.1yr, a1c.1yr.counts, by="UniqueIdentifier")
-a1c.1yr %>% filter(freq == 1) %>% select(c(UniqueIdentifier,koh.cat))
-a1c.1yr <- a1c.1yr %>% filter(freq > 1)
+a1c <- a1c %>% mutate(quart.from.koh1 = case_when(month.exact == 0 ~ 0,
+                                                month.exact > 0 & month.exact <= 3 ~ 1,
+                                                month.exact > 3 & month.exact <= 6 ~ 2,
+                                                month.exact > 6 & month.exact <= 9 ~ 3,
+                                                month.exact > 9 & time.from.koh1 <= 365 ~ 4))
 
-ggplot(data= a1c.1yr, 
+ggplot(data= a1c, 
        aes(x=month.from.koh1, y=A1c, group=UniqueIdentifier, colour=koh.cat))+
   geom_line() + 
-  xlab("Time (days)") + ylab("A1c") + theme_bw() +
+  xlab("Time (months)") + ylab("A1c") + theme_bw() +
   guides(colour = guide_legend(title = "KOH Attendance"))
 
-summary_a1c <- a1c.1yr %>% group_by(koh.cat, month.from.koh1) %>%
+summary_a1c <- a1c %>% group_by(koh.cat, month.from.koh1) %>%
   summarise(mean_a1c = mean(A1c))
-
 ggplot(data=summary_a1c, 
        aes(x=month.from.koh1, y=mean_a1c, group=koh.cat, colour=koh.cat))+
    geom_smooth(method=loess, se=FALSE, linewidth=0.75) + 
   xlab("Time (months)") + ylab("A1c (%)") + theme_bw() +
   guides(colour = guide_legend(title = "KOH Attendance"))
 
+summary_a1c <- a1c %>% group_by(koh.cat, quart.from.koh1) %>%
+  summarise(mean_a1c = mean(A1c))
+
+ggplot(data=summary_a1c, 
+       aes(x=quart.from.koh1, y=mean_a1c, group=koh.cat, colour=koh.cat))+
+   geom_smooth(method=loess, se=FALSE, linewidth=0.75) + 
+  xlab("Time (3 months)") + ylab("A1c (%)") + theme_bw() +
+  guides(colour = guide_legend(title = "KOH Attendance"))
+
 ```
 
-
+by month: time x one: 	-0.014026759 (-0.133298463, 0.105244946) (p=0.82); time x multiple: 0.022737160 (-0.067026719, 0.112501039) (p=0.62)
+              one:    0.126892650 (-0.888169071, 1.141954370) (p=0.81); multiple: -0.415746454 (-1.331031485, 0.499538577) (p=0.37)
+              time: -0.043508976 (-0.083147648, -0.003870304) (p=0.03)
+by quarter: time x one: 	-0.082208809 (-0.411858937, 0.247441318) (p=0.62); time x multiple: 0.080900676 (-0.173814468, 0.335615820) (p=0.53)
+              one:    0.215292969 (-0.816583452, 1.247169391) (p=0.68); multiple: -0.452110468 (-1.378131399, 0.473910464) (p=0.34)
+              time: -0.123239343 (-0.234286484, -0.012192201) (p=0.03)
 ```{r}
 a1c.mod1 <- lme(
   fixed = A1c ~ month.from.koh1 * koh.cat + age + male + IncomeLevel + BLACERISK + avg.bmi,
   random = ~ month.from.koh1 | UniqueIdentifier,
-  data = a1c.1yr,
+  data = a1c,
   method = "REML"
 )
 intervals(a1c.mod1)
--0.067383142 * 12
-0.022017191 * 12
-0.111417523 * 12
 summary(a1c.mod1)
+
+a1c.mod1.2 <- lme(
+  fixed = A1c ~ quart.from.koh1 * koh.cat + age + male + IncomeLevel + BLACERISK + avg.bmi,
+  random = ~ quart.from.koh1 | UniqueIdentifier,
+  data = a1c,
+  method = "REML"
+)
+intervals(a1c.mod1.2)
+summary(a1c.mod1.2)
 ```
 
 
@@ -200,34 +221,86 @@ bp2 <- bp2 %>% mutate(time = round(as.numeric(difftime(Date, KOHDate, units="day
 bp2$male <- ifelse(bp2$Sex == 'M', 1, 0)
 bp2$Marsh <- factor(bp2$Marsh)
 
+bp2$month.exact <- bp2$time / 30.4
+bp2 <- bp2 %>% mutate(month = case_when(month.exact == 0 ~ 0,
+                                                month.exact > 0 & month.exact <= 1 ~ 1,
+                                                month.exact > 1 & month.exact <= 2 ~ 2,
+                                                month.exact > 2 & month.exact <= 3 ~ 3,
+                                                month.exact > 3 & month.exact <= 4 ~ 4,
+                                                month.exact > 4 & month.exact <= 5 ~ 5,
+                                                month.exact > 5 & month.exact <= 6 ~ 6,
+                                                month.exact > 6 & month.exact <= 7 ~ 7,
+                                                month.exact > 7 & month.exact <= 8 ~ 8,
+                                                month.exact > 8 & month.exact <= 9 ~ 9,
+                                                month.exact > 9 & month.exact <= 10 ~ 10,
+                                                month.exact > 10 & month.exact <= 11 ~ 11,
+                                                month.exact > 11 & month.exact <= 12 ~ 12,
+                                                month.exact > 12 & month.exact <= 13 ~ 13,
+                                                month.exact > 13 & month.exact <= 14 ~ 14,
+                                                month.exact > 14 & month.exact <= 15 ~ 15,
+                                                month.exact > 15 & month.exact <= 16 ~ 16,
+                                                month.exact > 16 & month.exact <= 17 ~ 17,
+                                                month.exact > 17 & month.exact <= 18 ~ 18,
+                                                month.exact > 18 & month.exact <= 19 ~ 19,
+                                                month.exact > 19 & month.exact <= 20 ~ 20,
+                                                month.exact > 20 & month.exact <= 21 ~ 21,
+                                                month.exact > 21 & month.exact <= 22 ~ 22))
+bp2 <- bp2 %>% mutate(quarter = case_when(month.exact == 0 ~ 0,
+                                                month.exact > 0 & month.exact <= 3 ~ 1,
+                                                month.exact > 3 & month.exact <= 6 ~ 2,
+                                                month.exact > 6 & month.exact <= 9 ~ 3,
+                                                month.exact > 9 & month.exact <= 12 ~ 4,
+                                                month.exact > 12 & month.exact <= 15 ~ 5,
+                                                month.exact > 15 & month.exact <= 18 ~ 6,
+                                                month.exact > 18 & month.exact <= 21 ~ 7,
+                                                month.exact > 21 & month.exact <= 24 ~ 8))
+
 ggplot(data= bp2, 
-       aes(x=time, y=Systolic, group=UniqueIdentifier, colour=Marsh))+
-  geom_line() +
-  xlab("Time (days)") + ylab("Systolic Blood Pressure (mmHg)") + theme_bw() + 
+       aes(x=month, y=Systolic, group=UniqueIdentifier, colour=Marsh))+
+  geom_line() + 
+  xlab("Time (months)") + ylab("Systolic Blood Pressure (mmHg)") + theme_bw() + 
   scale_color_discrete(name = "Race", labels=c("Non-Hispanic White", "Marshallese"))
 
-summary_bp2 <- bp2 %>% group_by(Marsh, time) %>%
+summary_bp2 <- bp2 %>% group_by(Marsh, month) %>%
   summarise(mean_bp = mean(Systolic))
 
 ggplot(data=summary_bp2, 
-       aes(x=time, y=mean_bp, group=Marsh, colour=Marsh))+
+       aes(x=month, y=mean_bp, group=Marsh, colour=Marsh))+
   geom_smooth(method=loess, se=FALSE) + 
-  xlab("Time (days)") + ylab("Systolic Blood Pressure (mmHg)") + theme_bw() +
-  scale_color_discrete(name = "Race", labels=c("Non-Hispanic White", "Marshallese")) + coord_cartesian(ylim=c(108,147))
-```
+  xlab("Time (months)") + ylab("Systolic Blood Pressure (mmHg)") + theme_bw() +
+  scale_color_discrete(name = "Race", labels=c("Non-Hispanic White", "Marshallese"))
 
+summary_bp2 <- bp2 %>% group_by(Marsh, quarter) %>%
+  summarise(mean_bp = mean(Systolic))
+
+ggplot(data=summary_bp2, 
+       aes(x=quarter, y=mean_bp, group=Marsh, colour=Marsh))+
+  geom_smooth(method=loess, se=FALSE) + 
+  xlab("Time (3 months)") + ylab("Systolic Blood Pressure (mmHg)") + theme_bw() +
+  scale_color_discrete(name = "Race", labels=c("Non-Hispanic White", "Marshallese"))
+```
+by month: time x marsh: 	9.967987e-04 (-1.650823e-01, 1.630887e-01) (p=0.99); marsh: 1.151615e+00 (-1.275721e+00, 3.578951e+00) (p=0.35);
+              time: -4.973476e-02 (-7.628624e-02, -2.318328e-02) (p=0.0002)
+by quarter: time x marsh: 	-2.604872e-03 (-4.791694e-01, 4.739596e-01) (p=0.99); marsh: 1.172658e+00 (1.303669e+00, 3.648985e+00) (p=0.35);
+              time: -1.472664e-01 (-2.245122e-01, -7.002047e-02) (p=0.0002)
 ```{r}
 bp.mod2 <- lme(
-  fixed = Systolic ~ time * Marsh + age + male + IncomeLevel + avg.bmi,
-  random = ~ time | UniqueIdentifier,
+  fixed = Systolic ~ month * Marsh + age + male + IncomeLevel + avg.bmi,
+  random = ~ month | UniqueIdentifier,
   data = bp2,
   method = "REML"
 )
 summary(bp.mod2)
 intervals(bp.mod2)
--5.571021e-03 * 365
--8.387029e-05 * 365
-5.403280e-03 * 365
+
+bp.mod2.2 <- lme(
+  fixed = Systolic ~ quarter * Marsh + age + male + IncomeLevel + avg.bmi,
+  random = ~ quarter | UniqueIdentifier,
+  data = bp2,
+  method = "REML"
+)
+summary(bp.mod2.2)
+intervals(bp.mod2.2)
 ```
 
 objective 2 A1c
@@ -245,36 +318,85 @@ a1c2 <- a1c2 %>% mutate(time = round(as.numeric(difftime(Date, KOHDate, units="d
 
 a1c2$male <- ifelse(a1c2$Sex == 'M', 1, 0)
 a1c2$Marsh <- factor(a1c2$Marsh)
-a1c2 %>% filter(Marsh==0) %>% distinct(UniqueIdentifier)
-length(unique(a1c2$UniqueIdentifier))
+a1c2$month.exact <- a1c2$time / 30.4
+a1c2 <- a1c2 %>% mutate(month = case_when(month.exact == 0 ~ 0,
+                                                month.exact > 0 & month.exact <= 1 ~ 1,
+                                                month.exact > 1 & month.exact <= 2 ~ 2,
+                                                month.exact > 2 & month.exact <= 3 ~ 3,
+                                                month.exact > 3 & month.exact <= 4 ~ 4,
+                                                month.exact > 4 & month.exact <= 5 ~ 5,
+                                                month.exact > 5 & month.exact <= 6 ~ 6,
+                                                month.exact > 6 & month.exact <= 7 ~ 7,
+                                                month.exact > 7 & month.exact <= 8 ~ 8,
+                                                month.exact > 8 & month.exact <= 9 ~ 9,
+                                                month.exact > 9 & month.exact <= 10 ~ 10,
+                                                month.exact > 10 & month.exact <= 11 ~ 11,
+                                                month.exact > 11 & month.exact <= 12 ~ 12,
+                                                month.exact > 12 & month.exact <= 13 ~ 13,
+                                                month.exact > 13 & month.exact <= 14 ~ 14,
+                                                month.exact > 14 & month.exact <= 15 ~ 15,
+                                                month.exact > 15 & month.exact <= 16 ~ 16,
+                                                month.exact > 16 & month.exact <= 17 ~ 17,
+                                                month.exact > 17 & month.exact <= 18 ~ 18,
+                                                month.exact > 18 & month.exact <= 19 ~ 19,
+                                                month.exact > 19 & month.exact <= 20 ~ 20,
+                                                month.exact > 20 & month.exact <= 21 ~ 21,
+                                                month.exact > 21 & month.exact <= 22 ~ 22))
+a1c2 <- a1c2 %>% mutate(quarter = case_when(month.exact == 0 ~ 0,
+                                                month.exact > 0 & month.exact <= 3 ~ 1,
+                                                month.exact > 3 & month.exact <= 6 ~ 2,
+                                                month.exact > 6 & month.exact <= 9 ~ 3,
+                                                month.exact > 9 & month.exact <= 12 ~ 4,
+                                                month.exact > 12 & month.exact <= 15 ~ 5,
+                                                month.exact > 15 & month.exact <= 18 ~ 6,
+                                                month.exact > 18 & month.exact <= 21 ~ 7,
+                                                month.exact > 21 & month.exact <= 24 ~ 8))
 
 ggplot(data= a1c2, 
-       aes(x=time, y=A1c, group=UniqueIdentifier, colour=Marsh))+
+       aes(x=month, y=A1c, group=UniqueIdentifier, colour=Marsh))+
   geom_line() +
-  xlab("Time (days)") + ylab("A1c") + theme_bw() + 
+  xlab("Time (months)") + ylab("A1c") + theme_bw() + 
   scale_color_discrete(name = "Race", labels=c("Non-Hispanic White", "Marshallese"))
 
-summary_a1c2 <- a1c2 %>% group_by(Marsh, time) %>%
+summary_a1c2 <- a1c2 %>% group_by(Marsh, month) %>%
   summarise(mean_a1c = mean(A1c))
 
 ggplot(data=summary_a1c2, 
-       aes(x=time, y=mean_a1c, group=Marsh, colour=Marsh))+
+       aes(x=month, y=mean_a1c, group=Marsh, colour=Marsh))+
   geom_smooth(method=loess, se=FALSE) +
-  xlab("Time (days)") + ylab("A1c (%)") + theme_bw() + 
+  xlab("Time (months)") + ylab("A1c (%)") + theme_bw() + 
+  scale_color_discrete(name = "Race", labels=c("Non-Hispanic White", "Marshallese"))
+
+summary_a1c2 <- a1c2 %>% group_by(Marsh, quarter) %>%
+  summarise(mean_a1c = mean(A1c))
+
+ggplot(data=summary_a1c2, 
+       aes(x=quarter, y=mean_a1c, group=Marsh, colour=Marsh))+
+  geom_smooth(method=loess, se=FALSE) +
+  xlab("Time (3 months)") + ylab("A1c (%)") + theme_bw() + 
   scale_color_discrete(name = "Race", labels=c("Non-Hispanic White", "Marshallese"))
 ```
-
+by month: time x marsh: 	-1.089352e-02 (-0.0247203817, 2.933351e-03) (p=0.12); marsh: 2.245293e+00 (1.9917854763, 2.498800e+00) (p=0.000);
+              time: 1.125405e-03 (-0.0028656002, 5.116410e-03) (p=0.58)
+by quarter: time x marsh: 	-3.029897e-02 (-0.0698752134, -1.402562e-02) (p=0.13); marsh:  2.245818e+00 (1.9899852173, 2.501651e+00) (p=0.000);
+              time: 3.013347e-03 (-0.0084541148, 1.448081e-02) (p=0.61)
 ```{r}
 a1c.mod2 <- lme(
-  fixed = A1c ~ time * Marsh + age + male + IncomeLevel + avg.bmi,
-  random = ~ time | UniqueIdentifier,
+  fixed = A1c ~ month * Marsh + age + male + IncomeLevel + avg.bmi,
+  random = ~ month | UniqueIdentifier,
   data = a1c2,
   method = "REML"
 )
 summary(a1c.mod2)
 intervals(a1c.mod2)
--8.215749e-04 * 365
--3.558031e-04 * 365
-1.099686e-04 * 365
+
+a1c.mod2.2 <- lme(
+  fixed = A1c ~ quarter * Marsh + age + male + IncomeLevel + avg.bmi,
+  random = ~ quarter | UniqueIdentifier,
+  data = a1c2,
+  method = "REML"
+)
+summary(a1c.mod2.2)
+intervals(a1c.mod2.2)
 ```
 
