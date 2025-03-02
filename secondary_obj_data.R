@@ -23,7 +23,7 @@ htn_ids = table1 %>%
   select("UniqueIdentifier")
 
 # htn ptids and all BP readings/associated dates ONLY no other vars
-all_htn_reads = left_join(htn_ids, bp.nona.18, by="UniqueIdentifier") %>% filter(Systolic >= 50) %>%
+all_htn_reads = left_join(htn_ids, bp.nona.18, by="UniqueIdentifier") %>% filter(Systolic >= 50 & Systolic <= 360) %>%
   select(-age)
 
 # set of htn ptids with readings before first KOH meeting
