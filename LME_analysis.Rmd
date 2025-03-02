@@ -191,7 +191,7 @@ secondary objective
 126 marsh; 4695 NHW; 4821 total
 ```{r}
 bp2 <- read.csv('Analysis Data/Obj2BP_LME.csv')[,-1]
-length(unique(bp2$UniqueIdentifier[bp2$Marsh==0]))
+length(unique(bp2$UniqueIdentifier[bp2$Marsh==1]))
 
 bp2$KOHDate <- as.Date('2023-04-05')
 bp2$Date <- as.Date(bp2$Date)
@@ -206,7 +206,7 @@ bp2$male <- ifelse(bp2$Sex == 'M', 1, 0)
 bp2$Marsh <- factor(bp2$Marsh)
 
 bp2$month.exact <- bp2$time / 30.4
-
+ 
 ggplot(data= bp2, 
        aes(x=month.exact, y=Systolic, group=UniqueIdentifier, colour=Marsh))+
   geom_line() + 

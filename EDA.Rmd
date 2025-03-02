@@ -467,8 +467,6 @@ obj1 <- left_join(obj1, avg.bmi, by = "UniqueIdentifier")
 
 ```{r}
 obj1 <- read.csv('Analysis Data/Obj1_AllPts.csv')[,-1]
-obj1.1yr <- read.csv('Analysis Data/Obj1_1yr_Pts.csv')
-obj1.1yr <- left_join(obj1.1yr, obj1, by="UniqueIdentifier") %>% select(-X)
 ```
 
 table 1 for primary objective population
