@@ -19,7 +19,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 
 ```{r, include=FALSE}
-# ! Do we have to run the models in here to get the printouts? 
+# ! Do we have to run the models in here to get the printouts? yes
 
 
 

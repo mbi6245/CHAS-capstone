@@ -122,6 +122,144 @@ length(unique(NHW_yr$UniqueIdentifier))
 did_visit_types_year <- did_visit_types_year %>% mutate(year_center = (year - 2019) )
 
 
+
+
+# I think we need to change the format of the data. 
+# if we have the did_visit_types_year for the geeglm I think it will give us the number of expected ER visits per visit! 
+# not per patient. 
+# If we make a table with uniqueID, ER, marsh and year_center I think we get the data we need
+
+# PCP_per_person <- as.data.frame(with(did_visit_types_year, table(UniqueIdentifier, marsh, PCP, year_center)))
+
+
+did_visit_types_year <- did_visit_types_year %>% mutate(pre_year = if_else((year == 2018 | year == 2019), 1, 0),
+                                                        post_year = if_else((year == 2021 | year == 2022), 1, 0) )
+                                                                           
+
+Marshallese <- did_visit_types_year %>% filter(marsh == 1) 
+#colnames(Marshallese)
+MarshalleseUniqueID <- Marshallese$UniqueIdentifier
+
+#number of unique Marshallese
+length(unique(MarshalleseUniqueID))
+# 476
+
+Control <-did_visit_types_year %>% filter(marsh == 0) 
+ControlUniqueID <- Control$UniqueIdentifier
+
+# Number of unique controls 
+length(unique(ControlUniqueID))
+# 18586
+
+
+PCP_per_person <- did_visit_types_year %>% group_by(UniqueIdentifier, post_year) %>% summarize( sum(PCP))
+PCP_per_person <- PCP_per_person %>%  mutate(marsh = if_else((UniqueIdentifier %in% MarshalleseUniqueID), 1,
+                                                             if_else((UniqueIdentifier %in% ControlUniqueID), 0, NA) ) )
+
+
+ER_per_person <- did_visit_types_year %>% group_by(UniqueIdentifier, post_year) %>% summarize( sum(ER))
+ER_per_person <- ER_per_person %>% mutate(marsh = if_else((UniqueIdentifier %in% MarshalleseUniqueID), 1,
+                       if_else((UniqueIdentifier %in% ControlUniqueID), 0, NA) ) )
+colnames(PCP_per_person)[3] <- "sum_PCP"
+colnames(ER_per_person)[3] <- "sum_ER"
+# 
+# length(unique(did_visit_types_year$UniqueIdentifier))
+# # length is dfferent than the nrow/2
+# 
+# nrow(ER_per_person)
+# nrow(PCP_per_person)
+# # same
+# length(unique(ER_per_person$UniqueIdentifier)) == length(unique(did_visit_types_year$UniqueIdentifier))
+# 
+# setdiff(ER_per_person$UniqueIdentifier, did_visit_types_year$UniqueIdentifier)
+# # No difference
+# 
+# check <- did_visit_types_year %>% filter(UniqueIdentifier == 14012)
+
+
+# did_visit_types_year_merge <- did_visit_types_year %>% select(UniqueIdentifier, marsh, pre_year)
+# check <- left_join( did_visit_types_year_merge, ER_per_person,)
+# ### Not working at all!!
+
+
+
+
+
+gee_mod_DID_PCP_yr_best <- geeglm(sum_PCP ~ marsh*post_year, 
+                             data = PCP_per_person,
+                             id = UniqueIdentifier,
+                             family = gaussian, 
+                             scale.fix = T, # this sets phi = 1
+                             corstr = "exchangeable")
+#print(gee_mod_DID_PCP)
+summary(gee_mod_DID_PCP_yr_best)
+
+# Call:
+#   geeglm(formula = sum_PCP ~ marsh * post_year, family = gaussian, 
+#          data = PCP_per_person, id = UniqueIdentifier, corstr = "exchangeable", 
+#          scale.fix = T)
+# 
+# Coefficients:
+#   Estimate  Std.err    Wald Pr(>|W|)    
+# (Intercept)      0.59361  0.00954 3872.74   <2e-16 ***
+#   marsh           -0.12888  0.07324    3.10    0.078 .  
+# post_year        0.14158  0.01293  119.86   <2e-16 ***
+#   marsh:post_year -0.16577  0.08058    4.23    0.040 *  
+#   ---
+#   Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+# 
+# Correlation structure = exchangeable 
+# Scale is fixed.
+# 
+# Link = identity 
+# 
+# Estimated Correlation Parameters:
+#   Estimate Std.err
+# alpha    0.208  0.0118
+# Number of clusters:   19062  Maximum cluster size: 2 
+
+gee_mod_DID_ER_yr_best <- geeglm(sum_ER ~ marsh*post_year, 
+                                  data = ER_per_person,
+                                  id = UniqueIdentifier,
+                                  family = gaussian, 
+                                  scale.fix = T, # this sets phi = 1
+                                  corstr = "exchangeable")
+#print(gee_mod_DID_PCP)
+summary(gee_mod_DID_ER_yr_best)
+
+# geeglm(formula = sum_ER ~ marsh * post_year, family = gaussian, 
+#        data = ER_per_person, id = UniqueIdentifier, corstr = "exchangeable", 
+#        scale.fix = T)
+# 
+# Coefficients:
+#   Estimate  Std.err    Wald Pr(>|W|)    
+# (Intercept)      0.25948  0.00651 1589.51   <2e-16 ***
+#   marsh            0.03425  0.04762    0.52    0.472    
+# post_year        0.00164  0.00824    0.04    0.843    
+# marsh:post_year -0.13055  0.05187    6.33    0.012 *  
+#   ---
+#   Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+# 
+# Correlation structure = exchangeable 
+# Scale is fixed.
+# 
+# Link = identity 
+# 
+# Estimated Correlation Parameters:
+#   Estimate Std.err
+# alpha    0.282    0.03
+# Number of clusters:   19062  Maximum cluster size: 2 
+
+
+
+
+#################################################################################################
+
+
+
+
+
+
 gee_mod_DID_PCP_yr <- geeglm(PCP ~ marsh*year_center, 
                           data = did_visit_types_year,
                           id = UniqueIdentifier,
