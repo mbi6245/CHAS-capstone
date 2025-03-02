@@ -779,7 +779,7 @@ select(c("koh.counts","koh.counts.factor")) %>%
      digits = all_continuous() ~ 1
    ) %>%
    bold_labels() %>%
-   modify_header(all_stat_cols() ~ "**Diabetes**<br>\nN = 71")
+   modify_header(all_stat_cols() ~ "**Diabetes**<br>\nN = 69")
 
 koh.tbl <- tbl_merge(tbls = list(koh.bp.tbl, koh.a1c.tbl), tab_spanner = FALSE) %>% modify_caption("**'Know Our Health' Participation by Disease Type**")
 koh.tbl 
