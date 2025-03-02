@@ -512,6 +512,54 @@ obj1.1yr %>% select(c('KOH.cat','age','Sex.long','avg.bmi','HTN','PreDM','T2DM',
   modify_caption("Marshallese Participant Characteristics") %>%
    as_flex_table()
 ```
+```{r}
+obj1 <- obj1 %>% mutate(koh.cat = case_when(koh.counts == 0 ~ 'None',
+                                        koh.counts == 1 ~ 'One',
+                                        koh.counts > 1 ~ 'Multiple'))
+obj1$koh.cat <- factor(obj1$koh.cat, levels=c("None","One","Multiple"))
+obj1 <- obj1 %>% mutate(koh.none = ifelse(koh.counts == 0, 1, 0),
+                        koh.one = ifelse(koh.counts == 1, 1, 0),
+                        koh.mult = ifelse(koh.counts > 1, 1, 0))
+obj1$male <- ifelse(obj1$Sex=='M', 1, 0)
+
+library(rigr)
+# age is significantly associated with how many KOH meetings patients attend (older = more meetings)
+regress("mean", koh.counts ~ age, data=obj1)
+
+regress("mean", koh.counts ~ male, data=obj1)
+
+regress("mean", koh.counts ~ avg.bmi, data=obj1)
+
+regress("mean", koh.counts ~ HTN, data=obj1)
+
+# having diabetes is significantly associated with how many KOH meetings patients attend (diabetes = more meetings)
+regress("mean", koh.counts ~ Diabetes, data=obj1)
+
+regress("mean", koh.counts ~ T2DM, data=obj1)
+
+regress("mean", koh.counts ~ PreDM, data=obj1)
+
+regress("mean", koh.counts ~ both, data=obj1)
+
+# clinic location is significantly associated with how many KOH meetings patients attend (Market = more meetings)
+regress("mean", koh.counts ~ ClinicLocation, data=obj1)
+
+obj1 <- obj1 %>% mutate(h.dbl = ifelse(No.column.name == 'Doubling Up', 1, 0),
+                        h.hsd = ifelse(No.column.name == 'Housed', 1, 0),
+                        h.trans = ifelse(No.column.name == 'Transitional', 1, 0),
+                        h.psh = ifelse(No.column.name == 'Permanent Supportive Housing', 1, 0),
+                        h.oth = ifelse(No.column.name == 'Other', 1, 0))
+regress("mean", koh.counts ~ h.dbl, data=obj1)
+regress("mean", koh.counts ~ h.hsd, data=obj1)
+# being in transitional, other, or permanent supportive housing is significantly associated with going to fewer KOH meetings
+regress("mean", koh.counts ~ h.trans, data=obj1)
+regress("mean", koh.counts ~ h.psh, data=obj1)
+regress("mean", koh.counts ~ h.oth, data=obj1)
+
+regress("mean", koh.counts ~ IncomeLevel, data=obj1)
+
+regress("mean", koh.counts ~ BLACERISK, data=obj1)
+```
 
 
 table 1 for all Marshallese and non-Marshallese
