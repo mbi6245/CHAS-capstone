@@ -9,6 +9,7 @@ output: pdf_document
 knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(nlme)
+library(kableExtra)
 # source("primary_obj_data.R")
 # source("secondary_obj_data.R")
 ```
@@ -23,6 +24,7 @@ o2_bp = read_csv("Analysis Data/Obj2BPPrePost.csv")
 names(o2_bp)[1] = "row_id"
 o2_a1c = read_csv("Analysis Data/Obj2A1cPrePost.csv")
 names(o2_a1c)[1] = "row_id"
+DAYS_IN_MONTH = 30.4
 ```
 
 ```{r}
@@ -45,7 +47,10 @@ std_times = o1_bp %>%
   ) %>% 
   select(std_time) %>% 
   ungroup() %>% 
-  mutate(row_id = as.numeric(o1_bp[["row_id"]])) %>% 
+  mutate(
+    row_id = as.numeric(o1_bp[["row_id"]]),
+    std_months = std_time / DAYS_IN_MONTH
+  ) %>% 
   select(std_time, row_id)
 
 o1_bp = left_join(o1_bp, std_times, by="row_id") 
@@ -71,7 +76,10 @@ std_times = o1_a1c %>%
   ) %>% 
   select(std_time) %>% 
   ungroup() %>% 
-  mutate(row_id = as.numeric(o1_a1c[["row_id"]])) %>% 
+  mutate(
+    row_id = as.numeric(o1_a1c[["row_id"]]),
+    std_months = std_time / DAYS_IN_MONTH
+  ) %>% 
   select(std_time, row_id)
 
 o1_a1c = left_join(o1_a1c, std_times, by="row_id") 
@@ -146,7 +154,10 @@ std_times = o2_bp %>%
   ) %>%
   select(std_time) %>% 
   ungroup() %>%
-  mutate(row_id = as.numeric(o2_bp[["row_id"]])) %>% 
+  mutate(
+    row_id = as.numeric(o2_bp[["row_id"]]),
+    std_months = std_time / DAYS_IN_MONTH
+  ) %>% 
   select(std_time, row_id)
 
 o2_bp = left_join(o2_bp, std_times, by="row_id") 
@@ -166,7 +177,10 @@ std_times = o2_a1c %>%
   ) %>%
   select(std_time) %>% 
   ungroup() %>%
-  mutate(row_id = as.numeric(o2_a1c[["row_id"]])) %>% 
+  mutate(
+    row_id = as.numeric(o2_a1c[["row_id"]]),
+    std_months = std_time / DAYS_IN_MONTH
+  ) %>% 
   select(std_time, row_id)
 
 o2_a1c = left_join(o2_a1c, std_times, by="row_id") 
@@ -215,6 +229,61 @@ mod_o2_a1c = lme(
 summary(mod_o2_a1c)
 ```
 
+# Tables of Regression Results
+
+```{r}
+# format for regression results from models
+coef_names = c("std_time:koh_catNone", "std_time:koh_catOne")
+col_names = c("lower", "upper")
+
+obj1_res = data.frame(
+  rbind(
+    cbind(intervals(mod_o1_a1c)$fixed[coef_names, col_names], summary(mod_o1_a1c)$tTable[coef_names, "p-value"]),
+    cbind(intervals(mod_o1_bp, which="fixed")$fixed[coef_names, col_names], summary(mod_o1_bp)$tTable[coef_names, "p-value"])
+  )
+)
+
+# obj1_res = data.frame(
+#   est = c(summary(mod_o1_a1c)$tTable[coef_names, "Value"], summary(mod_o1_bp)$tTable[coef_names, "Value"]),
+#   CI = intervals(mod_o1_a1c)$fixed[coef_names, col_names]
+# )
+
+rownames(obj1_res) = c("months:KOHnever", "months:KOHonce", "months:KOHnever ", "months:KOHonce ")
+colnames(obj1_res)[4] = "p-value"
+
+kable(obj1_res) %>% pack_rows("a1c_pre_post", 1, 2) %>% pack_rows("sbp_pre_post", 3, 4)
+```
+
+```{r}
+# table for undajusted baseline results
+o1_a1c_bltb = o1_a1c %>%
+  group_by(UniqueIdentifier) %>% 
+  summarize(
+    pre_Date = min(A1cDate),
+    A1c = ifelse(A1cDate == pre_Date, A1c, NA),
+    koh_cat = koh_cat
+  ) %>% 
+  drop_na()
+
+o1_bp_bltb = o1_bp %>%
+  group_by(UniqueIdentifier) %>% 
+  summarize(
+    pre_Date = min(BPDate),
+    sys = ifelse(BPDate == pre_Date, sys, NA),
+    koh_cat = koh_cat
+  ) %>% 
+  drop_na()
+
+o1_bltb = data.frame(
+  KOHnever = c(mean((o1_a1c_bltb %>% filter(koh_cat == "None"))$A1c), mean((o1_bp_bltb %>% filter(koh_cat == "None"))$sys)),
+    KOHonce = c(mean((o1_a1c_bltb %>% filter(koh_cat == "One"))$A1c), mean((o1_bp_bltb %>% filter(koh_cat == "One"))$sys)),
+    KOHmultiple = c(mean((o1_a1c_bltb %>% filter(koh_cat == "Multiple"))$A1c), mean((o1_bp_bltb %>% filter(koh_cat == "Multiple"))$sys))
+)
+
+rownames(o1_bltb) = c("A1c", "SBP")
+
+o1_bltb
+```
 
 
 \pagebreak
