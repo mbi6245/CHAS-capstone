@@ -14,7 +14,7 @@ koh.htn <- koh.table1 %>% filter(HTN == 1)
 # isolate the patient ids
 koh.htn.patlist <- koh.htn %>% select("UniqueIdentifier")
 # select bp measures for only kohn htn pts
-koh.bp <- left_join(koh.htn.patlist, bp.nona.18, by = "UniqueIdentifier") %>% select(-age)
+koh.bp <- left_join(koh.htn.patlist, bp.nona.18, by = "UniqueIdentifier") %>% filter(Systolic >= 50) %>% select(-age) 
 
 # count number of bp readings per patient
 koh.bp.counts <- koh.bp %>% group_by(UniqueIdentifier) %>% count(name = "bp.counts")
