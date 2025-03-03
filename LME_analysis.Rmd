@@ -99,6 +99,7 @@ month_se <- fixed_effects["month.exact:koh.catOne", "Std.Error"]
 month_effect <- fixed_effects["month.exact:koh.catMultiple", "Value"]
 month_se <- fixed_effects["month.exact:koh.catMultiple", "Std.Error"]
 ```
+
 136 none; 27 one; 34 multiple; 197 total
 ```{r}
 a1c <- read.csv('Analysis Data/Obj1A1c_LME.csv')[,-1]
