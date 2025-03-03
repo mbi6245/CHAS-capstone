@@ -1,0 +1,17 @@
+---
+title: "DID Report 2"
+author: "Cindy Elder, Max Bi and Gabby Lopez"
+date: "`r Sys.Date()`"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+
+
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+(gee_mod_DID_ER_yr_best)
+```
+

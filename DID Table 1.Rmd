@@ -1,0 +1,84 @@
+---
+title: "DID Table 1"
+author: "Cindy Elder, Max Bi and Gabby Lopez"
+date: "`r Sys.Date()`"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(gtsummary)
+library(tidyverse)
+```
+
+```{r, include = TRUE}
+# DID Table 1
+
+# code copied from Gabby's tables for Marsh and Non-Marsh line 517
+fp_tarpop = file.path(getwd(), "Analysis Data/targetpop_DID.csv")
+targetpop_DID <- read.csv(fp_tarpop) 
+
+#obj2 <- read.csv('Analysis Data/Obj2_AllPts.csv')[,-1]
+colnames(targetpop_DID)
+targetpop_DID <- targetpop_DID %>% mutate(Sex.long = case_when(Sex == 'M' ~ 'Male',
+                            Sex == 'F' ~ 'Female'))
+
+diag <- read.csv("Raw Data/UWDataDiagnoses.csv")
+#Changing any cases where PreDM=1 and T2DM=1 to PreDM=0 for the descriptive statistics
+colnames(diag)
+diag$Pre.diabetes[diag$Pre.diabetes == 1 & diag$Type.2.DM == 1] <- 0
+diag.nona <- diag %>% filter(!is.na(HTN) & !is.na(Pre.diabetes) & !is.na(Type.2.DM ))
+# create diabetes indicator for both pre and T2DM and indicator for if they have both htn and diabetes
+diag.nona <- diag.nona %>% mutate(Diabetes = ifelse((Type.2.DM  == 1 | Type.2.DM == 1), 1, 0),
+                                  both = ifelse((Diabetes == 1 & HTN == 1), 1, 0))
+
+colnames(diag.nona)[1] <- "UniqueID" 
+#'HTN','PreDM','T2DM','both',
+#'
+targetpop_DID <- left_join(targetpop_DID, diag.nona, )
+
+# 'avg.bmi'# we don't have multiple BMI so we need to just take BMI
+targetpop_DID %>% select(c('Group','age','Sex.long','BMI','HTN','Pre.diabetes','Type.2.DM','both','ClinicLocation','No.column.name','IncomeLevel','BLACERISK')) %>%
+  gtsummary::tbl_summary(
+    by = Group,
+    include=c(age, Sex.long, BMI, HTN, Pre.diabetes, Type.2.DM, both, ClinicLocation, No.column.name, IncomeLevel, BLACERISK),
+    list(
+      age ~ 'Age',
+      Sex.long ~ 'Sex',
+      BMI ~ 'BMI',
+      HTN ~ 'Hypertension',
+      Pre.diabetes ~ 'Pre-Diabetes',
+      Type.2.DM ~ 'Type II Diabetes',
+      both ~ 'Hypertension and T2DM',
+      ClinicLocation ~ 'Clinic Location',
+      No.column.name ~ 'Housing Status',
+      IncomeLevel ~ 'Income Level',
+      BLACERISK ~ 'Risk Score'
+    ),
+    missing_text = "Missing",
+    type = all_continuous() ~ "continuous",
+    statistic = all_continuous() ~ c(
+      "{median} ({min}, {max})"
+    ),
+    digits = all_continuous() ~ 1
+  ) %>%
+  bold_labels() %>%
+  modify_table_styling(
+    columns = label,
+    rows = label == "Income Level",
+    footnote = "Percentage of participant's annual income relative to the federal poverty line."
+  ) %>%
+  modify_table_styling(
+    columns = label,
+    rows = label == "Risk Score",
+    footnote = "Risk scores are calculated based on the BLACE Index Scoring Tool. Scores range from 0-19; <8 is low risk, 8-11 is moderate risk, and 12+ is high risk."
+  ) %>%
+  modify_header(label ~ "**Baseline Characteristics**") %>%
+  modify_header(all_stat_cols() ~ "**{level}**<br>\nN = {n}") %>%
+  modify_caption("Marshallese and Non-Hispanic White Participant Characteristics") %>%
+  add_overall() %>%
+  as_flex_table()
+
+```
+

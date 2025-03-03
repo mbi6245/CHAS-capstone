@@ -8,7 +8,7 @@ library(zoo) # to extract month out of the standard date format
 library(rstudioapi) # to allow us to use file.path 
 library(did) # package from other professors who require time change in start
 library(geepack) #geeglm
-
+library(gtsummary)
 # Import dataframes DataCleaningDID.R script
 
 
@@ -218,6 +218,14 @@ summary(gee_mod_DID_PCP_yr_best)
 # alpha    0.208  0.0118
 # Number of clusters:   19062  Maximum cluster size: 2 
 
+# @gabby, please add titles here
+tbl_regression(gee_mod_DID_PCP_yr_best, intercept = TRUE) 
+
+
+
+
+
+
 gee_mod_DID_ER_yr_best <- geeglm(sum_ER ~ marsh*post_year, 
                                   data = ER_per_person,
                                   id = UniqueIdentifier,
@@ -226,6 +234,8 @@ gee_mod_DID_ER_yr_best <- geeglm(sum_ER ~ marsh*post_year,
                                   corstr = "exchangeable")
 #print(gee_mod_DID_PCP)
 summary(gee_mod_DID_ER_yr_best)
+coef(gee_mod_DID_ER_yr_best)
+# confint(gee_mod_DID_ER_yr_best)
 
 # geeglm(formula = sum_ER ~ marsh * post_year, family = gaussian, 
 #        data = ER_per_person, id = UniqueIdentifier, corstr = "exchangeable", 
@@ -251,11 +261,37 @@ summary(gee_mod_DID_ER_yr_best)
 # Number of clusters:   19062  Maximum cluster size: 2 
 
 
+# GTSummary table of results
 
+
+# reg2 <- glm(Affected ~ DHW.MeanMax_Degree_Heating_Weeks_MO03 + DHW.MeanMax_Degree_Heating_Weeks_YR10YR01 + mean_weekly_range_SST_CRW_Daily_ALLB4 + Prop_BleachResTaxa + Depth_m_mn,
+#             family=poisson,
+#             data = hcbc,
+#             offset = log(LiveCoral))
+# reg2
+# 
+# tbl_regression(reg2, exponentiate=TRUE, label=list(
+#   DHW.MeanMax_Degree_Heating_Weeks_MO03 ~ 'Maximum DHW (prior 3 months)',
+#   DHW.MeanMax_Degree_Heating_Weeks_YR10YR01 ~ 'Maximum DHW (prior 10 years)',
+#   mean_weekly_range_SST_CRW_Daily_ALLB4 ~ 'Mean Weekly SST Range',
+#   Prop_BleachResTaxa ~ 'Proportion of Bleach Resistant Taxa',
+#   Depth_m_mn ~ 'Bathymetric Depth (m)'
+# ))
+# confint(gee_mod_DID_ER_yr_best)
+
+# @gabby, and here  
+
+tbl_regression(gee_mod_DID_ER_yr_best, intercept = TRUE  #, 
+               # label = list(
+               #  marsh ~ "Difference between Marshallese and Non-Hispanic White patients (2019)", 
+               #  post_year ~ "Rate of Change Non-Hispanic White patients (per year after 2019)", 
+               #  marsh:post_year  ~ "Rate of Change for Marshallese patients (per year after 2019)"
+               # )
+               ) 
 
 #################################################################################################
 
-
+# previous models
 
 
 
