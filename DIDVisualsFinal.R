@@ -143,15 +143,22 @@ table_all_visit_types <- left_join(table_all_visit_types, total_pop_confirmed)
 # 
 # check2 <- as.data.frame(with(check, table(marsh,  year)))
 
-
+ # take out zeros beause they are actually missing, we shouldn't have them on the graph
+   table_all_visit_types$Freq[table_all_visit_types$Freq == 0 & table_all_visit_types$year == 2016] <- NA
+   table_all_visit_types$Freq[table_all_visit_types$Freq == 0 & table_all_visit_types$year == 2017] <- NA   
+   table_all_visit_types <- table_all_visit_types %>% mutate(rate_confirmed = Freq/total_pop_confirmed)
+   
+   
  # Best, All Service Line Rates of NHW and M over a decade
 table_all_visit_types %>% filter( year != 2025, year != 2016) %>% 
   ggplot(aes(x = year, y = rate_confirmed, col = marsh))+
-  geom_point()+
+  geom_point()+ # jitter optinos aes( alpha = 0.5), width= 0.25, height = 0
   facet_wrap(~ServiceLine)+
   theme_bw()+
-  ylab("rate (number of visits per patient")+
-  labs(title= "Rates per Service Line \n Marshallese and Non-Hispanic White Patients \n Maple and Market Clinic")
+  ylab("rate (number of visits per patient)")+
+  labs(title= "Rates per Service Line \n Marshallese and Non-Hispanic White Patients \n Maple and Market Clinic")+
+  scale_color_discrete(name = "Group", labels=c("Non-Hispanic White", "Marshallese"))+
+  theme(legend.position = "bottom", legend.direction = "vertical")
 
 # Best Marshallese over time 
 table_all_visit_types %>% filter( year != 2025, year != 2016, marsh == 1) %>% 
@@ -160,8 +167,10 @@ table_all_visit_types %>% filter( year != 2025, year != 2016, marsh == 1) %>%
   geom_smooth(method = "lm")+
   facet_wrap(~ServiceLine)+
   theme_bw()+
-  ylab("rate (number of visits per patient")+
-  labs(title= "Rates per Service Line \n Marshallese and Non-Hispanic White Patients \n Maple and Market Clinic")
+  ylab("rate (number of visits per patient)")+
+  labs(title= "Rates per Service Line \n Marshallese and Non-Hispanic White Patients \n Maple and Market Clinic")+
+  scale_color_discrete(name = "Group", labels=c("Non-Hispanic White", "Marshallese"))+
+  theme(legend.position = "bottom", legend.direction = "vertical")
 
 
 # Best ER DID image
@@ -183,7 +192,9 @@ ylim(c(0, 1.25))+
   theme_bw()+
   ylab("ER rate (visits per patient)")+
   labs(title= "Rates per Service Line \n Marshallese and Non-Hispanic White Patients \n Maple and Market Clinic")+
-  geom_vline(xintercept = 3.75, col = "goldenrod")
+  geom_vline(xintercept = 3.75, col = "goldenrod")+
+  scale_color_discrete(name = "Group", labels=c("Non-Hispanic White", "Marshallese"))+
+  theme(legend.position = "bottom", legend.direction = "vertical")
 
 
 # Best PCP DID image
@@ -206,7 +217,9 @@ table_all_visit_types %>% filter( year != 2025, year != 2016, year != 2017) %>% 
   theme_bw()+
   ylab("PCP rate (visits per patient)")+
   labs(title= "Rates per Service Line \n Marshallese and Non-Hispanic White Patients \n Maple and Market Clinic")+
-  geom_vline(xintercept = 2.75, col = "goldenrod")
+  geom_vline(xintercept = 2.75, col = "goldenrod")+
+  scale_color_discrete(name = "Group", labels=c("Non-Hispanic White", "Marshallese"))+
+  theme(legend.position = "bottom", legend.direction = "vertical")
 
   
 # lines
