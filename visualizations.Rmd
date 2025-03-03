@@ -26,3 +26,8 @@ names(o2_bp)[1] = "row_id"
 o2_a1c = read_csv("Analysis Data/Obj2A1c_LME.csv")
 names(o2_a1c)[1] = "row_id"
 ```
+
+```{r}
+
+```
+
