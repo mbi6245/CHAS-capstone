@@ -57,11 +57,11 @@ std_times = o1_bp %>%
 o1_bp = left_join(o1_bp, std_times, by="row_id") 
 o1_bp = o1_bp %>% mutate(
   Sex = ifelse(o1_bp$Sex == "M", 1, 0),
-  koh_cat = case_when(
+  koh_cat = as.factor(case_when(
     KOH.none == 1 ~ "None",
     KOH.one == 1 ~ "One",
     KOH.mult == 1 ~ "Multiple"
-  )
+  ))
 )
 
 std_times = o1_a1c %>% 
@@ -86,12 +86,15 @@ std_times = o1_a1c %>%
 o1_a1c = left_join(o1_a1c, std_times, by="row_id") 
 o1_a1c = o1_a1c %>% mutate(
   Sex = ifelse(o1_a1c$Sex == "M", 1, 0),
-  koh_cat = case_when(
+  koh_cat = as.factor(case_when(
     KOH.none == 1 ~ "None",
     KOH.one == 1 ~ "One",
     KOH.mult == 1 ~ "Multiple"
-  )
+  ))
 )
+
+o1_bp$koh_cat <- relevel(o1_bp$koh_cat, ref = "None")
+o1_a1c$koh_cat <- relevel(o1_a1c$koh_cat, ref = "None")
 ```
 
 ```{r}
@@ -239,7 +242,7 @@ summary(mod_o2_a1c)
 # format for regression results from models
 ###########################################
 
-coef_names = c("std_months:koh_catNone", "std_months:koh_catOne", "koh_catNone", "koh_catOne", "std_months")
+coef_names = c("std_months:koh_catOne", "std_months:koh_catMultiple", "koh_catOne", "koh_catMultiple", "std_months")
 col_names = c("est.", "lower", "upper")
 
 # primary objective
@@ -255,7 +258,7 @@ obj1_res = data.frame(
 #   CI = intervals(mod_o1_a1c)$fixed[coef_names, col_names]
 # )
 
-rownames(obj1_res) = c("months:KOHnever", "months:KOHonce", "KOHnever", "KOHonce", "months", "months:KOHnever ", "months:KOHonce ", "KOHnever ", "KOHonce ", "months ")
+rownames(obj1_res) = c("months:KOHonce", "months:KOHmultiple", "KOHonce", "KOHmultiple", "months", "months:KOHonce ", "months:KOHmultiple ", "KOHonce ", "KOHmultiple ", "months ")
 colnames(obj1_res)[4] = "p-value"
 
 kable(obj1_res) %>% pack_rows("a1c_pre_post", 1, 5) %>% pack_rows("sbp_pre_post", 6, 10)
@@ -264,7 +267,6 @@ kable(obj1_res) %>% pack_rows("a1c_pre_post", 1, 5) %>% pack_rows("sbp_pre_post"
 coef_names = c("std_months:Marsh", "Marsh", "std_months")
 col_names = c("est.", "lower", "upper")
 
-# primary objective
 obj1_res = data.frame(
   rbind(
     cbind(intervals(mod_o2_a1c, which="fixed")$fixed[coef_names, col_names], summary(mod_o2_a1c)$tTable[coef_names, "p-value"]),
