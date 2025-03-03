@@ -1,0 +1,28 @@
+---
+title: "Pre Post Analysis"
+author: "Max Bi"
+date: "`r Sys.Date()`"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(nlme)
+library(kableExtra)
+# source("primary_obj_data.R")
+# source("secondary_obj_data.R")
+# options(digits=3)
+```
+
+```{r}
+KOH1 = as.Date("2023-04-05")
+o1_bp = read_csv("Analysis Data/Obj1BP_LME.csv")
+names(o1_bp)[1] = "row_id"
+o1_a1c = read_csv("Analysis Data/Obj1A1c_LME.csv")
+names(o1_a1c)[1] = "row_id"
+o2_bp = read_csv("Analysis Data/Obj2BP_LME.csv")
+names(o2_bp)[1] = "row_id"
+o2_a1c = read_csv("Analysis Data/Obj2A1c_LME.csv")
+names(o2_a1c)[1] = "row_id"
+```

@@ -313,7 +313,7 @@ o1_bltb = data.frame(
 
 rownames(o1_bltb) = c("A1c", "SBP")
 
-o1_bltb
+kable(o1_bltb)
 ```
 
 
