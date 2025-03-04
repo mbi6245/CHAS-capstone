@@ -343,7 +343,8 @@ options(digits=3)
 # format for regression results from models
 ###########################################
 
-coef_names = c("month.exact:koh.catOne", "month.exact:koh.catMultiple", "koh.catOne", "koh.catMultiple", "month.exact")
+coef_names = c("month.exact", "koh.catOne", "koh.catMultiple", "month.exact:koh.catOne", "month.exact:koh.catMultiple",
+               "age", "male", "IncomeLevel", "BLACERISK", "avg.bmi")
 col_names = c("est.", "lower", "upper")
 
 a1c.ci1 <- intervals(a1c.mod1)$fixed[coef_names, col_names]
@@ -367,51 +368,68 @@ colnames(bp.p1) <- c("p-value")
 bp.p1 <- bp.p1 %>% mutate(`p-value` = round(`p-value`, 3))
 names(obj1_res)
 # primary objective
-obj1_res = data.frame(
-  rbind(
-    cbind(a1c.ci1, a1c.p1),
-    cbind(bp.ci1, bp.p1)
-  )
-)
+obj1_res_a1c = data.frame(cbind(a1c.ci1, a1c.p1))
+obj1_res_bp = data.frame(cbind(bp.ci1, bp.p1))
 
-# obj1_res <- obj1_res %>% mutate(ci = cat("(",lower, ", ", upper, ")", sep=""))
-# obj1_res = data.frame(
-#   est = c(summary(mod_o1_a1c)$tTable[coef_names, "Value"], summary(mod_o1_bp)$tTable[coef_names, "Value"]),
-#   CI = intervals(mod_o1_a1c)$fixed[coef_names, col_names]
-# )
-
-rownames(obj1_res) = c("months:KOHOnce", "months:KOHMultiple", "KOHOnce", "KOHMultiple", "months", "months:KOHOnce ", "months:KOHMultiple ", "KOHOnce ", "KOHMultiple ", "months ")
-colnames(obj1_res) = c("estimate ", "  95% CI", "p-value")
+rownames(obj1_res_a1c) = c("Months ", "KOHOnce ", "KOHMultiple ", "Months:KOHOnce ", "Months:KOHMultiple ", "Age ", "Male ", "Income ", "Risk Score ", "BMI ")
+rownames(obj1_res_bp) = c("Months ", "KOHOnce ", "KOHMultiple ", "Months:KOHOnce ", "Months:KOHMultiple ", "Age ", "Male ", "Income ", "Risk Score ", "BMI ")
+colnames(obj1_res_a1c) = c("estimate ", "95% CI", "p-value")
+colnames(obj1_res_bp) = c("estimate ", "95% CI", "p-value")
 
 library(kableExtra)
 
 # Display the table
-kable(obj1_res, align = c("c", "c", "c", "c")) %>%
-  pack_rows("A1c Longitudinal", 1, 5) %>%
-  pack_rows("SBP Longitudinal", 6, 10) %>%
+kable(obj1_res_a1c, align = c("c", "c", "c", "c")) %>%
+  pack_rows("A1c Longitudinal", 1, 10) %>%
   column_spec(2, width = "3cm") %>%  # Adjust width for estimate column
   column_spec(3, width = "3cm")
 
-kable(obj1_res) %>% pack_rows("A1c Longitudinal", 1, 5) %>% pack_rows("SBP Longitudinal", 6, 10)
+kable(obj1_res_bp, align = c("c", "c", "c", "c")) %>%
+  pack_rows("SBP Longitudinal", 1, 10) %>%
+  column_spec(2, width = "3cm") %>%  # Adjust width for estimate column
+  column_spec(3, width = "3cm")
 
 # secondary objective
-coef_names = c("month.exact:Marsh1", "Marsh1", "month.exact")
+coef_names = c("month.exact", "Marsh1", "month.exact:Marsh1", "age", "male", "IncomeLevel", "avg.bmi")
 col_names = c("est.", "lower", "upper")
 
-obj2_res = data.frame(
-  rbind(
-    cbind(intervals(a1c.mod2, which="fixed")$fixed[coef_names, col_names], summary(a1c.mod2)$tTable[coef_names, "p-value"]),
-    cbind(intervals(bp.mod2, which="fixed")$fixed[coef_names, col_names], summary(bp.mod2)$tTable[coef_names, "p-value"])
-  )
-)
+a1c.ci2 <- intervals(a1c.mod2)$fixed[coef_names, col_names]
+a1c.ci2 <- data.frame(a1c.ci2) %>%
+  mutate(`95% CI` = paste0("(", round(lower, 3), ", ", round(upper, 3), ")"),
+         est. = round(est., 3)) %>%
+  select(-c(lower, upper))
+colnames(a1c.ci2) <- c("estimate","95% CI")
+a1c.p2 <- data.frame(summary(a1c.mod2)$tTable[coef_names, "p-value"])
+colnames(a1c.p2) <- c("p-value")
+a1c.p2 <- a1c.p2 %>% mutate(`p-value` = round(`p-value`, 3))
 
-# obj1_res = data.frame(
-#   est = c(summary(mod_o1_a1c)$tTable[coef_names, "Value"], summary(mod_o1_bp)$tTable[coef_names, "Value"]),
-#   CI = intervals(mod_o1_a1c)$fixed[coef_names, col_names]
-# )
+bp.ci2 <- intervals(bp.mod2)$fixed[coef_names, col_names]
+bp.ci2 <- data.frame(bp.ci2) %>%
+  mutate(`95% CI` = paste0("(", round(lower, 3), ", ", round(upper, 3), ")"),
+         est. = round(est., 3)) %>%
+  select(-c(lower, upper))
+colnames(bp.ci2) <- c("estimate","95% CI")
+bp.p2 <- data.frame(summary(bp.mod2)$tTable[coef_names, "p-value"])
+colnames(bp.p2) <- c("p-value")
+bp.p2 <- bp.p2 %>% mutate(`p-value` = round(`p-value`, 3))
 
-rownames(obj2_res) = c("months:Marshallese","Marshallese", "months", "months:Marshallese ","Marshallese ", "months ")
-colnames(obj2_res) = c("estimate", "95% CI lower", "95% CI upper", "p-value")
+obj2_res_a1c = data.frame(cbind(a1c.ci2, a1c.p2))
+obj2_res_bp = data.frame(cbind(bp.ci2, bp.p2))
+
+rownames(obj2_res_a1c) = c("Months ", "Marshallese ", "Months:Marshallese ", "Age ", "Male ", "Income ", "BMI ")
+rownames(obj2_res_bp) = c("Months ", "Marshallese ", "Months:Marshallese ", "Age ", "Male ", "Income ", "BMI ")
+colnames(obj2_res_a1c) = c("estimate ", "95% CI", "p-value")
+colnames(obj2_res_bp) = c("estimate ", "95% CI", "p-value")
+
+kable(obj2_res_a1c, align = c("c", "c", "c", "c")) %>%
+  pack_rows("A1c Longitudinal", 1, 7) %>%
+  column_spec(2, width = "3cm") %>%  # Adjust width for estimate column
+  column_spec(3, width = "3cm")
+
+kable(obj2_res_bp, align = c("c", "c", "c", "c")) %>%
+  pack_rows("SBP Longitudinal", 1, 7) %>%
+  column_spec(2, width = "3cm") %>%  # Adjust width for estimate column
+  column_spec(3, width = "3cm")
 
 kable(obj2_res) %>% pack_rows("A1c longitudinal", 1, 3) %>% pack_rows("SBP longitudinal", 4, 6)
 ```
