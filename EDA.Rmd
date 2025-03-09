@@ -472,7 +472,7 @@ obj1 <- read.csv('Analysis Data/Obj1_AllPts.csv')[,-1]
 table 1 for primary objective population
 \pagebreak
 ```{r echo=FALSE, warning=FALSE}
-obj1.1yr %>% select(c('KOH.cat','age','Sex.long','avg.bmi','HTN','PreDM','T2DM','both','ClinicLocation','No.column.name','IncomeLevel','BLACERISK')) %>%
+obj1 %>% select(c('KOH.cat','age','Sex.long','avg.bmi','HTN','PreDM','T2DM','both','ClinicLocation','No.column.name','IncomeLevel','BLACERISK')) %>%
    gtsummary::tbl_summary(
      by = KOH.cat,
      include = c(age, Sex.long, avg.bmi, HTN, PreDM, T2DM, both, ClinicLocation, No.column.name, IncomeLevel, BLACERISK),
@@ -797,8 +797,8 @@ select(c("koh.counts","koh.counts.factor")) %>%
    gtsummary::tbl_summary(
      include=c(koh.counts, koh.counts.factor),
      label = list(
-       koh.counts ~ 'Average KOH Meetings Attended',
-       koh.counts.factor ~ 'KOH Meetings Attended'
+       koh.counts ~ 'Average Attendance',
+       koh.counts.factor ~ 'No. Meetings Attended'
      ),
      missing_text = "Missing",
      type = list(koh.counts ~ "continuous"),
@@ -816,8 +816,8 @@ select(c("koh.counts","koh.counts.factor")) %>%
    gtsummary::tbl_summary(
      include=c(koh.counts, koh.counts.factor),
      label = list(
-       koh.counts ~ 'Average KOH Meetings Attended',
-       koh.counts.factor ~ 'KOH Meetings Attended'
+       koh.counts ~ 'Average Attendance',
+       koh.counts.factor ~ 'No. Meetings Attended'
      ),
      missing_text = "Missing",
      type = list(koh.counts ~ "continuous"),
