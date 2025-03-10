@@ -51,7 +51,8 @@ ggplot(data=summary_bp,
        aes(x=month.exact, y=mean_bp, group=koh.cat, colour=koh.cat))+ 
    geom_smooth(method=loess, se=FALSE, linewidth=0.85) + geom_line(alpha=0.3) +
   xlab("Time from first KOH meeting (months)") + ylab("Systolic Blood Pressure (mmHg)") + theme_bw() +
-  guides(colour = guide_legend(title = "KOH Attendance")) + scale_x_continuous(breaks=seq(0,12, by=3)) + scale_y_continuous(breaks=seq(65,215, by=25))
+  guides(colour = guide_legend(title = "KOH Attendance")) + scale_x_continuous(breaks=seq(0,12, by=3)) + scale_y_continuous(breaks=seq(65,215, by=25)) +
+  theme(legend.position = "bottom", legend.direction = "horizontal", legend.text = element_text(size=11))
 ```
 need to take out first bps for patients who don't have measurements within 1 year
 taking out patients that don't have a post measurement within 1 year removes 7 patients: 6 none and 1 multiple. now there are 120 analyzable patients
@@ -137,7 +138,8 @@ ggplot(data=summary_a1c,
        aes(x=month.exact, y=mean_a1c, group=koh.cat, colour=koh.cat))+
    geom_smooth(method=loess, se=FALSE, linewidth=0.85) + geom_line(alpha=0.3) +
   xlab("Time from first KOH meeting (months)") + ylab("A1c (%)") + theme_bw() +
-  guides(colour = guide_legend(title = "KOH Attendance")) + scale_x_continuous(breaks=seq(0,12, by=3)) + scale_y_continuous(breaks=seq(5,15, by=2))
+  guides(colour = guide_legend(title = "KOH Attendance")) + scale_x_continuous(breaks=seq(0,12, by=3)) + scale_y_continuous(breaks=seq(5,15, by=2)) +
+      theme(legend.position = "bottom", legend.direction = "horizontal", legend.text = element_text(size=11))
 
 ```
 
@@ -223,7 +225,8 @@ ggplot(data=summary_bp2,
        aes(x=month.exact, y=mean_bp, group=Marsh, colour=Marsh))+
   geom_smooth(method=loess, se=FALSE, linewidth=0.85) + geom_line(alpha=0.3) +
   xlab("Time from baseline (months)") + ylab("Systolic Blood Pressure (mmHg)") + theme_bw() +
-  scale_color_discrete(name = "Race", labels=c("Non-Hispanic White", "Marshallese")) + scale_x_continuous(breaks=seq(0,21, by=3)) + scale_y_continuous(breaks=seq(85,210, by=25))
+  scale_color_discrete(name = "Race", labels=c("Non-Hispanic White", "Marshallese")) + scale_x_continuous(breaks=seq(0,21, by=3)) + scale_y_continuous(breaks=seq(85,210, by=25)) +
+  theme(legend.position = "bottom", legend.direction = "horizontal", legend.text = element_text(size=11))
 ```
 by month: time x marsh: -6.199612e-02 (-2.248453e-01, 1.008531e-01) (p=0.46); marsh: 1.434512 (-9.570280e-01, 3.826051e+00) (p=0.24);
               time: -4.298336e-02 (-6.934832e-02, -1.661841e-02) (p=0.0014)
@@ -296,7 +299,8 @@ ggplot(data=summary_a1c2,
        aes(x=month.exact, y=mean_a1c, group=Marsh, colour=Marsh))+
   geom_smooth(method=loess, se=FALSE, linewidth=0.85) + geom_line(alpha=0.3) +
   xlab("Time from baseline (months)") + ylab("A1c (%)") + theme_bw() + 
-  scale_color_discrete(name = "Race", labels=c("Non-Hispanic White", "Marshallese")) + scale_x_continuous(breaks=seq(0,21, by=3)) + scale_y_continuous(breaks=seq(4.5, 17, by=2.5))
+  scale_color_discrete(name = "Race", labels=c("Non-Hispanic White", "Marshallese")) + scale_x_continuous(breaks=seq(0,21, by=3)) + scale_y_continuous(breaks=seq(4.5, 17, by=2.5)) +
+    theme(legend.position = "bottom", legend.direction = "horizontal", legend.text = element_text(size=11))
 ```
 by month: time x marsh: -1.081642e-02 (-0.024975889, 3.343046e-03) (p=0.13); marsh: 2.240465 (1.988022603, 2.492907) (p=0.000);
               time: 1.109435e-03 (-0.002975881, 5.194750e-03) (p=0.59)

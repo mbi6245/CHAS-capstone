@@ -13,7 +13,9 @@ library(gtsummary)
 
 
 fp_visits = file.path(getwd(), "Analysis Data/all_visit_types.csv")
-all_visit_types <- read.csv(fp_visits) 
+all_visit_types <- read.csv(fp_visits)
+unique(all_visit_types$year)
+all_visit_types 
 # Already marked Visit Types with Marshallese and NHW
 # all_visit_types  has M indicator from previous DataCleaningDID.R script, which shows 
 # 1 = marshallese, 0 = Non-Hispanic White, NA = Other not in our analysis)
@@ -58,10 +60,12 @@ did_visit_types_year <- did_visit_types_year %>% mutate(ER = if_else( ((ServiceL
 Marshallese_yr <- did_visit_types_year %>% filter(marsh == 1) 
 length(unique(Marshallese_yr$UniqueIdentifier))
 # 476 Marshallese visited these 2 clinics this year
+# gabby got 495
 
 NHW_yr <- did_visit_types_year %>% filter(marsh == 0) 
 length(unique(NHW_yr$UniqueIdentifier))
 # 18586 NonHispanic Whites visited these 2 clinics this year
+# gabby got 20177
 
 
 # we will have some of the same patients who appear in both time frames, but more in the 2nd time period
@@ -143,6 +147,7 @@ MarshalleseUniqueID <- Marshallese$UniqueIdentifier
 #number of unique Marshallese
 length(unique(MarshalleseUniqueID))
 # 476
+# gabby got 495
 
 Control <-did_visit_types_year %>% filter(marsh == 0) 
 ControlUniqueID <- Control$UniqueIdentifier
@@ -150,6 +155,7 @@ ControlUniqueID <- Control$UniqueIdentifier
 # Number of unique controls 
 length(unique(ControlUniqueID))
 # 18586
+# gabby got 20177
 
 
 PCP_per_person <- did_visit_types_year %>% group_by(UniqueIdentifier, post_year) %>% summarize( sum(PCP))
@@ -163,7 +169,7 @@ ER_per_person <- ER_per_person %>% mutate(marsh = if_else((UniqueIdentifier %in%
 colnames(PCP_per_person)[3] <- "sum_PCP"
 colnames(ER_per_person)[3] <- "sum_ER"
 # 
-# length(unique(did_visit_types_year$UniqueIdentifier))
+length(unique(did_visit_types_year$UniqueIdentifier))
 # # length is dfferent than the nrow/2
 # 
 # nrow(ER_per_person)
@@ -219,12 +225,17 @@ summary(gee_mod_DID_PCP_yr_best)
 # Number of clusters:   19062  Maximum cluster size: 2 
 
 # @gabby, please add titles here
-tbl_regression(gee_mod_DID_PCP_yr_best, intercept = TRUE) 
-
-
-
-
-
+tbl_regression(gee_mod_DID_PCP_yr_best, intercept = FALSE,
+               label = list(
+                 marsh ~ "Marshallese",
+                 post_year ~ "Year")) %>%
+  bold_labels() %>%
+  modify_header(label = "**Variable**") %>%
+  modify_table_styling(
+    columns = label,
+    rows = label == "Year",
+    footnote = "Year relative to CHW hiring in 2019"
+  )
 
 gee_mod_DID_ER_yr_best <- geeglm(sum_ER ~ marsh*post_year, 
                                   data = ER_per_person,
@@ -281,13 +292,16 @@ coef(gee_mod_DID_ER_yr_best)
 
 # @gabby, and here  
 
-tbl_regression(gee_mod_DID_ER_yr_best, intercept = TRUE  #, 
-               # label = list(
-               #  marsh ~ "Difference between Marshallese and Non-Hispanic White patients (2019)", 
-               #  post_year ~ "Rate of Change Non-Hispanic White patients (per year after 2019)", 
-               #  marsh:post_year  ~ "Rate of Change for Marshallese patients (per year after 2019)"
-               # )
-               ) 
+tbl_regression(gee_mod_DID_ER_yr_best, intercept = FALSE,
+               label = list(
+                 marsh ~ "Marshallese",
+                 post_year ~ "Year")) %>%
+  bold_labels() %>%
+  modify_header(label = "**Variable**") %>%
+  modify_table_styling(
+    columns = label,
+    rows = label == "Year",
+    footnote = "Year relative to CHW hiring in 2019")
 
 #################################################################################################
 

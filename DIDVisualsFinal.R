@@ -101,7 +101,7 @@ total_pop_confirmed<- all_visit_types %>% group_by(marsh, year) %>% distinct(Uni
 total_pop_confirmed <- with(total_pop_confirmed, table(marsh, year))
 total_pop_confirmed <- as.data.frame(total_pop_confirmed)
 
-write.csv(total_pop_confirmed, "total_pop_confirmed_marsh_year.csv")
+write.csv(total_pop_confirmed, "Analysis Data/total_pop_confirmed_marsh_year.csv")
 # confirmed= total population of unique patients each year
 colnames(total_pop_confirmed)[3] <- "total_pop_confirmed"
 table_all_visit_types <- left_join(table_all_visit_types, total_pop_confirmed)
@@ -144,9 +144,9 @@ table_all_visit_types <- left_join(table_all_visit_types, total_pop_confirmed)
 # check2 <- as.data.frame(with(check, table(marsh,  year)))
 
  # take out zeros beause they are actually missing, we shouldn't have them on the graph
-   table_all_visit_types$Freq[table_all_visit_types$Freq == 0 & table_all_visit_types$year == 2016] <- NA
-   table_all_visit_types$Freq[table_all_visit_types$Freq == 0 & table_all_visit_types$year == 2017] <- NA   
-   table_all_visit_types <- table_all_visit_types %>% mutate(rate_confirmed = Freq/total_pop_confirmed)
+  # table_all_visit_types$Freq[table_all_visit_types$Freq == 0 & table_all_visit_types$year == 2016] <- NA
+  # table_all_visit_types$Freq[table_all_visit_types$Freq == 0 & table_all_visit_types$year == 2017] <- NA
+   #table_all_visit_types <- table_all_visit_types %>% mutate(rate_confirmed = Freq/total_pop_confirmed)
    
    
  # Best, All Service Line Rates of NHW and M over a decade
@@ -184,17 +184,20 @@ table_all_visit_types %>% filter( year != 2025, year != 2016, marsh == 1) %>%
 #   labs(title= "Rates per Service Line \n Marshallese and Non-Hispanic White Patients \n Maple and Market Clinic")+
 #   geom_vline(xintercept = 3.75, col = "goldenrod")
 
-table_all_visit_types %>% filter( year != 2025, year != 2016) %>% filter(ServiceLine == "Emergency") %>%
+
+table_all_visit_types %>% filter( year != 2025, year != 2016, year != 2017) %>% filter(ServiceLine == "Emergency") %>%
   ggplot(aes(x = year, y = rate_confirmed, col = marsh))+
   geom_point()+
-  #facet_wrap(~ServiceLine)+
 ylim(c(0, 1.25))+
   theme_bw()+
-  ylab("ER rate (visits per patient)")+
-  labs(title= "Rates per Service Line \n Marshallese and Non-Hispanic White Patients \n Maple and Market Clinic")+
-  geom_vline(xintercept = 3.75, col = "goldenrod")+
-  scale_color_discrete(name = "Group", labels=c("Non-Hispanic White", "Marshallese"))+
-  theme(legend.position = "bottom", legend.direction = "vertical")
+  ylab("ER Visits per Patient")+
+  xlab("Year") +
+ labs(title= "ER Rates Over Time by Race")+
+  geom_vline(xintercept = 2.75, col = "black")+
+  geom_vline(xintercept = 3.32, col = "grey", lty =2) +
+  geom_vline(xintercept = 4.42, col = "grey", lty = 2) +
+  scale_color_discrete(name = "Race", labels=c("Non-Hispanic White", "Marshallese"))+
+  theme(legend.position = "bottom", legend.direction = "horizontal", legend.text = element_text(size=11))
 
 
 # Best PCP DID image
@@ -212,16 +215,16 @@ ylim(c(0, 1.25))+
 table_all_visit_types %>% filter( year != 2025, year != 2016, year != 2017) %>% filter(ServiceLine == "Primary Care") %>%
   ggplot(aes(x = year, y = rate_confirmed, col = marsh))+
   geom_point()+
-  #facet_wrap(~ServiceLine)+
   ylim(c(0, 3.25))+
   theme_bw()+
-  ylab("PCP rate (visits per patient)")+
-  labs(title= "Rates per Service Line \n Marshallese and Non-Hispanic White Patients \n Maple and Market Clinic")+
-  geom_vline(xintercept = 2.75, col = "goldenrod")+
-  scale_color_discrete(name = "Group", labels=c("Non-Hispanic White", "Marshallese"))+
-  theme(legend.position = "bottom", legend.direction = "vertical")
+  ylab("PC Visits per Patient)")+
+  #labs(title= "Primary Care Rates Over Time by Race")+
+  geom_vline(xintercept = 2.75, col = "black")+
+  geom_vline(xintercept = 3.32, col = "grey", lty =2) +
+  geom_vline(xintercept = 4.42, col = "grey", lty = 2) +
+  scale_color_discrete(name = "Race", labels=c("Non-Hispanic White", "Marshallese"))+
+  theme(legend.position = "bottom", legend.direction = "horizontal", legend.text = element_text(size=11))
 
-  
 # lines
   ggplot()+
   geom_abline( intercept =(gee_mod_DID_ER_yr$coefficients[1] + gee_mod_DID_ER_yr$coefficients[2]), 

@@ -8,7 +8,7 @@ library(rstudioapi) # for file path?
 # Demographics #
 ######################
 fp_pnl = file.path(getwd(), "Raw Data/UWDataPanel.csv")
-panel <- read.csv(fp_pnl) # demographics
+panel <- read.csv(fp_pnl, na.strings = "") # demographics
 
 # from Gabby's EDA code
 
@@ -106,36 +106,53 @@ nrow(higher_income)
 fp_bmi = file.path(getwd(), "Raw Data/UWDataBMIs.csv")
 bmi <- read.csv(fp_bmi) # demographics
 
-fp_new_bmi = file.path(getwd(), "Raw Data/UW BMI Missing List .csv")
-UW.BMI.Missing.List. <- read.csv(fp_new_bmi) # demographics
+# gabby added
+fp_missing_bmi = file.path(getwd(), "Raw Data/UWBMIMissing.csv")
+missing_bmi <- read.csv(fp_missing_bmi)
+
+# cindys old code
+#fp_new_bmi = file.path(getwd(), "Raw Data/UW BMI Missing List.csv")
+#UW.BMI.Missing.List. <- read.csv(fp_new_bmi) # demographics
 
 # bmi <- read.csv("Raw Data/UWDataBMIs.csv")
+
+# gabby added
 bmi$Date <- mdy(bmi$Date)
+bmi.nona <- bmi %>% filter(!is.na(Date) & !is.na(BMI)) %>% distinct() %>% filter(BMI<=250)
+missing_bmi$LastBMIDate <- mdy(missing_bmi$LastBMIDate)
+missing_bmi$LastHeightDate <- mdy(missing_bmi$LastHeightDate)
+missing_bmi$LastWeightDate <- mdy(missing_bmi$LastWeightDate)
+missing_bmi <- missing_bmi %>% select(-c(BMIRefusedReason, BMIRefusedDate)) %>%
+  mutate(BMI = ifelse(LastBMIDate >= LastWeightDate, LastBMI, (LastWeight / (LastHeight)^2) * 703),
+         Date = ifelse(LastBMIDate >= LastWeightDate, LastBMIDate, LastWeightDate))
+missing_bmi <- missing_bmi %>% rename(UniqueIdentifier = uniqueIdentifier) %>% select(c(UniqueIdentifier, BMI, Date))
+missing_bmi$BMI <- round(missing_bmi$BMI, digits=2)
+full_bmi <- rbind(bmi.nona, missing_bmi) %>% select(c(UniqueIdentifier, BMI))
+
+# cindys old code
 #bmi.nona <- bmi %>% filter(!is.na(Date) & !is.na(BMI))
 # update this with new BMI list
-
 #UW.BMI.Missing.List. <- read.csv("~/BIOST CLASSES/597 Capstone with Lloyd Mancl/597 Capstone/CHAS-capstone/Raw Data/UW BMI Missing List .csv")
-
-colnames(bmi)
+#colnames(bmi)
 # match up the column names so we can merge better
-colnames(UW.BMI.Missing.List.)[1] <- c("UniqueIdentifier")
-colnames(UW.BMI.Missing.List.)[2] <- c("BMI")
-
-
-full_bmi <- full_join(bmi, UW.BMI.Missing.List.) # , by = c("UniqueIdentifier" , "uniqueIdentifier")
+#colnames(UW.BMI.Missing.List.)[1] <- c("UniqueIdentifier")
+#colnames(UW.BMI.Missing.List.)[2] <- c("BMI")
+#full_bmi <- full_join(bmi, UW.BMI.Missing.List.) # , by = c("UniqueIdentifier" , "uniqueIdentifier")
 
 
 
 # mark who are Marshallese and see if there are NHW with higher BMI
 colnames(targetpop)
 colnames(full_bmi)
+colnames(targetpop)[1] <- c("UniqueID")
 colnames(full_bmi)[1] <- c("UniqueID")
-targetpop <-  left_join(targetpop ,full_bmi)
+targetpop <-  left_join(targetpop ,full_bmi, by = "UniqueID")
 
 MaxMarshalleseBMI <- targetpop %>% filter(Marsh == 1) %>% summarize(max(BMI, na.rm = TRUE))
 # 73
 MaxNHWBMI <- targetpop %>% filter(Marsh == 0) %>% summarize(max(BMI, na.rm = TRUE))
 # 111436.5
+# gabby got 246
 
 # ! note there are some zero BMI in each group as well but since they are in both I think we can accept these?
 
@@ -169,13 +186,17 @@ intersect(targetpop_DID$UniqueID, exclude) # check there are no more excluded pa
 # our total patient population for DID
 length(unique(targetpop_DID$UniqueID))
 # 26462
+# gabby got 28502
 
 targetpop_DID %>% group_by(Marsh) %>% nrow()
 # 140843
+# gabby got 151297
 targetpop_DID %>% filter(Marsh == 1) %>% nrow()
 # 4824
+# gabby got 4936
 targetpop_DID %>% filter(Marsh == 0) %>% nrow()
 # 136019
+# gabby got 146361
 
 
 # length(unique(targetpop$UniqueID))
@@ -234,6 +255,7 @@ MarshalleseUniqueID <- Marshallese$UniqueID
 #number of unique Marshallese
 length(unique(MarshalleseUniqueID))
 # 849
+# gabby got 876
 
 Control <- targetpop_DID %>% filter((Race == 'White' & Ethnicity == 'Not Hispanic or Latino'))
 ControlUniqueID <- Control$UniqueID
@@ -241,11 +263,10 @@ ControlUniqueID <- Control$UniqueID
 # Number of unique controls 
 length(unique(ControlUniqueID))
 # 25616
+# gabby got 27629
 
 
-
-
-write.csv(targetpop_DID, "targetpop_DID.csv")
+write.csv(targetpop_DID, "Analysis Data/targetpop_DID.csv")
 
 
 
@@ -261,7 +282,8 @@ all_visit_types_2016_2021 <- read.csv(fp_ex_enc)
 all_visit_types_2021_2025 <- read.csv(fp_enc)
 # Jan 2021 ro Jan 2025
 
-
+all_visit_types_2021_2025$Date <- mdy(all_visit_types_2021_2025$Date)
+all_visit_types_2016_2021$Date <- mdy(all_visit_types_2016_2021$Date)
 # make sure the sets are mutually exclusive
 
 #?lubridate
@@ -281,12 +303,14 @@ all_visit_types_2021_2025 <- read.csv(fp_enc)
 
 # Remove 2021 from one set
 #lubridate::year(x)
-all_visit_types_2016_2021 <- all_visit_types_2016_2021 %>% mutate(year = lubridate::year(as.Date(all_visit_types_2016_2021$Date, format = "%m/%d/%Y")) )
+#all_visit_types_2016_2021 <- all_visit_types_2016_2021 %>% mutate(year = lubridate::year(as.Date(all_visit_types_2016_2021$Date, format = "%m/%d/%Y")) )
+all_visit_types_2016_2021 <- all_visit_types_2016_2021 %>% mutate(year = lubridate::year(all_visit_types_2016_2021$Date) )
 
 all_visit_types_2016_2020 <- all_visit_types_2016_2021 %>% filter(year != 2021)
 
 # add year to all_visit_types_2021_2025 as well
-all_visit_types_2021_2025 <- all_visit_types_2021_2025 %>% mutate(year = lubridate::year(as.Date(all_visit_types_2021_2025$Date, format = "%m/%d/%Y")) )
+#all_visit_types_2021_2025 <- all_visit_types_2021_2025 %>% mutate(year = lubridate::year(as.Date(all_visit_types_2021_2025$Date, format = "%m/%d/%Y")) )
+all_visit_types_2021_2025 <- all_visit_types_2021_2025 %>% mutate(year = lubridate::year(all_visit_types_2021_2025$Date) )
 
 colnames(all_visit_types_2021_2025) == colnames(all_visit_types_2016_2020)
 
@@ -307,8 +331,8 @@ nrow(all_visit_types_2016_2020) + nrow(all_visit_types_2021_2025) == nrow(all_vi
 
 ########### Make Sure we have data on all patients ############
 # figure out how many races we are missing in 2016 to 2020 data
-all_races <- panel %>% select(UniqueID, KOHParticipant, Ethnicity, Race)
-all_visit_types_race <- full_join(all_visit_types, all_races, by = c("UniqueIdentifier" = "UniqueID") )
+all_races <- panel %>% select(UniqueIdentifier, KOHParticipant, Ethnicity, Race)
+all_visit_types_race <- full_join(all_visit_types, all_races, by = "UniqueIdentifier")
 all_visit_types_race %>% summary()
 
 all <- as.data.frame(summary(as.factor(all_visit_types_race$Race)))
@@ -364,7 +388,7 @@ all_visit_types <- all_visit_types %>% mutate(marsh = if_else((UniqueIdentifier 
 
 
 
-write.csv(all_visit_types, "all_visit_types.csv")
+write.csv(all_visit_types, "Analysis Data/all_visit_types.csv")
 
 
 table_all_visit_types <- as.data.frame( with(all_visit_types, table(ServiceLine,year, marsh)) ) #, useNA = "always"
