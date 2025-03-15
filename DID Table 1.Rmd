@@ -19,6 +19,15 @@ library(tidyverse)
 fp_tarpop = file.path(getwd(), "Analysis Data/targetpop_DID.csv")
 targetpop_DID <- read.csv(fp_tarpop) 
 
+fp_visits = file.path(getwd(), "Analysis Data/all_visit_types.csv")
+all_visit_types <- read.csv(fp_visits) 
+
+did_visit_types_year <- all_visit_types %>% filter(Date >= "2018-08-31", Date <= "2019-08-31"  | # pretreat
+                                                Date >= "2021-08-31", Date <= "2022-08-31") # post treat
+
+did_visit_types_year <- did_visit_types_year %>% mutate(visit = 1  )
+did_visit_types_year <- did_visit_types_year %>% mutate(pre_year = if_else((year == 2018 | year == 2019), 1, 0),
+                                                        post_year = if_else((year == 2021 | year == 2022), 1, 0) )
 #obj2 <- read.csv('Analysis Data/Obj2_AllPts.csv')[,-1]
 colnames(targetpop_DID)
 targetpop_DID <- targetpop_DID %>% mutate(Sex.long = case_when(Sex == 'M' ~ 'Male',
@@ -36,13 +45,57 @@ diag.nona <- diag.nona %>% mutate(Diabetes = ifelse((Type.2.DM  == 1 | Type.2.DM
 colnames(diag.nona)[1] <- "UniqueID" 
 #'HTN','PreDM','T2DM','both',
 #'
-targetpop_DID <- left_join(targetpop_DID, diag.nona, )
+targetpop_DID <- left_join(targetpop_DID, diag.nona )
+```
 
+
+```{r, include = TRUE}
+# Generate Table 1
+
+# targetpop_DID has each appointment. But we need each patient for Table 1
+                                                                           
+
+all_visits_per_person <- did_visit_types_year %>% group_by(UniqueIdentifier, post_year) %>% summarize(
+  #sum(PCP), sum(ER),  #don't have these without adding them in
+  sum(visit))
+
+
+ Marshallese <- targetpop_DID %>% filter(Race == 'Marshallese' | Language == 'Marshallese'| KOHParticipant == 1)
+ MarshalleseUniqueID <- unique(Marshallese$UniqueID)
+ Control <- targetpop_DID %>% filter((Race == 'White' & Ethnicity == 'Not Hispanic or Latino'))
+ ControlUniqueID <- unique(Control$UniqueID)
+ 
+
+all_visits_per_person <- all_visits_per_person %>%  mutate(marsh = if_else((UniqueIdentifier %in% MarshalleseUniqueID), 1,
+                                                             if_else((UniqueIdentifier %in% ControlUniqueID), 0, NA) ) )
+colnames(all_visits_per_person) <- c( "UniqueID", "post_year", 
+                                      #"sum_PCP_autumn", "sum_ER_autumn",
+                                      "sum_visits_year", "marsh")
+
+# 29621 patients
+# remove duplocates
+targetpop_DID_merge <- dplyr::distinct(targetpop_DID, UniqueID, .keep_all = TRUE)
+all_visits_per_person <- all_visits_per_person %>% filter(post_year == 1)
+
+all_visits_per_person <- left_join( all_visits_per_person, targetpop_DID_merge )
+
+# Oh no! This joining made many rows for each patient with 190k rows! 
+# removed duplicate rows first
+
+all_visits_per_person <- all_visits_per_person %>% filter(!is.na(marsh))
+ # 17212 patients
+
+```
+
+
+```{r, include = TRUE}
 # 'avg.bmi'# we don't have multiple BMI so we need to just take BMI
-targetpop_DID %>% select(c('Group','age','Sex.long','BMI','HTN','Pre.diabetes','Type.2.DM','both','ClinicLocation','No.column.name','IncomeLevel','BLACERISK')) %>%
+#targetpop_DID %>%  # change to PCP per person 
+all_visits_per_person %>% 
+  select(c('Group','age','Sex.long','BMI','HTN','Pre.diabetes','Type.2.DM','both','ClinicLocation','No.column.name','IncomeLevel','BLACERISK', sum_visits_year)) %>%
   gtsummary::tbl_summary(
     by = Group,
-    include=c(age, Sex.long, BMI, HTN, Pre.diabetes, Type.2.DM, both, ClinicLocation, No.column.name, IncomeLevel, BLACERISK),
+    include=c(age, Sex.long, BMI, HTN, Pre.diabetes, Type.2.DM, both, ClinicLocation, No.column.name, IncomeLevel, BLACERISK, sum_visits_year),
     list(
       age ~ 'Age',
       Sex.long ~ 'Sex',
@@ -54,7 +107,8 @@ targetpop_DID %>% select(c('Group','age','Sex.long','BMI','HTN','Pre.diabetes','
       ClinicLocation ~ 'Clinic Location',
       No.column.name ~ 'Housing Status',
       IncomeLevel ~ 'Income Level',
-      BLACERISK ~ 'Risk Score'
+      BLACERISK ~ 'Risk Score', 
+      sum_visits_year ~ 'Total Number of Visits Per Year'
     ),
     missing_text = "Missing",
     type = all_continuous() ~ "continuous",
