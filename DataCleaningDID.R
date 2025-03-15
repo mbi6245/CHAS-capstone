@@ -250,7 +250,7 @@ visuals_DID(ClinicLocation) # lots of marshallese have no clinic assigned
 
 
 Marshallese <- targetpop_DID %>% filter(Race == 'Marshallese' | Language == 'Marshallese'| KOHParticipant == 1) #
-MarshalleseUniqueID <- Marshallese$UniqueID
+MarshalleseUniqueID <- unique(Marshallese$UniqueID)
 
 #number of unique Marshallese
 length(unique(MarshalleseUniqueID))
@@ -258,7 +258,7 @@ length(unique(MarshalleseUniqueID))
 # gabby got 876
 
 Control <- targetpop_DID %>% filter((Race == 'White' & Ethnicity == 'Not Hispanic or Latino'))
-ControlUniqueID <- Control$UniqueID
+ControlUniqueID <- unique(Control$UniqueID)
 
 # Number of unique controls 
 length(unique(ControlUniqueID))

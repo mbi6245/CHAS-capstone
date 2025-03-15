@@ -15,7 +15,8 @@ library(gtsummary)
 fp_visits = file.path(getwd(), "Analysis Data/all_visit_types.csv")
 all_visit_types <- read.csv(fp_visits)
 unique(all_visit_types$year)
-all_visit_types 
+
+#all_visit_types 
 # Already marked Visit Types with Marshallese and NHW
 # all_visit_types  has M indicator from previous DataCleaningDID.R script, which shows 
 # 1 = marshallese, 0 = Non-Hispanic White, NA = Other not in our analysis)
@@ -142,7 +143,7 @@ did_visit_types_year <- did_visit_types_year %>% mutate(pre_year = if_else((year
 
 Marshallese <- did_visit_types_year %>% filter(marsh == 1) 
 #colnames(Marshallese)
-MarshalleseUniqueID <- Marshallese$UniqueIdentifier
+MarshalleseUniqueID <- unique(Marshallese$UniqueIdentifier)
 
 #number of unique Marshallese
 length(unique(MarshalleseUniqueID))
@@ -150,7 +151,7 @@ length(unique(MarshalleseUniqueID))
 # gabby got 495
 
 Control <-did_visit_types_year %>% filter(marsh == 0) 
-ControlUniqueID <- Control$UniqueIdentifier
+ControlUniqueID <- unique(Control$UniqueIdentifier)
 
 # Number of unique controls 
 length(unique(ControlUniqueID))
@@ -170,7 +171,7 @@ colnames(PCP_per_person)[3] <- "sum_PCP"
 colnames(ER_per_person)[3] <- "sum_ER"
 # 
 length(unique(did_visit_types_year$UniqueIdentifier))
-# # length is dfferent than the nrow/2
+# # length is different than the nrow/2. Some not in both time periods? 
 # 
 # nrow(ER_per_person)
 # nrow(PCP_per_person)
@@ -224,8 +225,8 @@ summary(gee_mod_DID_PCP_yr_best)
 # alpha    0.208  0.0118
 # Number of clusters:   19062  Maximum cluster size: 2 
 
-# @gabby, please add titles here
-tbl_regression(gee_mod_DID_PCP_yr_best, intercept = FALSE,
+# gabby added titles here :)
+tbl_regression(gee_mod_DID_PCP_yr_best, intercept = TRUE,
                label = list(
                  marsh ~ "Marshallese",
                  post_year ~ "Year")) %>%
@@ -290,9 +291,9 @@ coef(gee_mod_DID_ER_yr_best)
 # ))
 # confint(gee_mod_DID_ER_yr_best)
 
-# @gabby, and here  
+# gabby added titles here :)  
 
-tbl_regression(gee_mod_DID_ER_yr_best, intercept = FALSE,
+tbl_regression(gee_mod_DID_ER_yr_best, intercept = TRUE,
                label = list(
                  marsh ~ "Marshallese",
                  post_year ~ "Year")) %>%
