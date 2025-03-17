@@ -155,10 +155,11 @@ table_all_visit_types %>% filter( year != 2025, year != 2016) %>%
   geom_point()+ # jitter optinos aes( alpha = 0.5), width= 0.25, height = 0
   facet_wrap(~ServiceLine)+
   theme_bw()+
-  ylab("rate (number of visits per patient)")+
-  labs(title= "Rates per Service Line \n Marshallese and Non-Hispanic White Patients \n Maple and Market Clinic")+
-  scale_color_discrete(name = "Group", labels=c("Non-Hispanic White", "Marshallese"))+
-  theme(legend.position = "bottom", legend.direction = "vertical")
+  ylab("Visits per Patient")+
+  xlab("Year") +
+  labs(title= "Rates per Medical Service by Race")+
+  scale_color_discrete(name = "Race", labels=c("Non-Hispanic White", "Marshallese"))+
+  theme(legend.position = "bottom", legend.direction = "horizontal", legend.text = element_text(size=11))
 
 # Best Marshallese over time 
 table_all_visit_types %>% filter( year != 2025, year != 2016, marsh == 1) %>% 
@@ -217,7 +218,8 @@ table_all_visit_types %>% filter( year != 2025, year != 2016, year != 2017) %>% 
   geom_point()+
   ylim(c(0, 3.25))+
   theme_bw()+
-  ylab("PC Visits per Patient)")+
+  ylab("PC Visits per Patient")+
+  xlab("Year") +
   #labs(title= "Primary Care Rates Over Time by Race")+
   geom_vline(xintercept = 2.75, col = "black")+
   geom_vline(xintercept = 3.32, col = "grey", lty =2) +

@@ -472,9 +472,13 @@ obj1 <- read.csv('Analysis Data/Obj1_AllPts.csv')[,-1]
 table 1 for primary objective population
 \pagebreak
 ```{r echo=FALSE, warning=FALSE}
-obj1 %>% select(c('KOH.cat','age','Sex.long','avg.bmi','HTN','PreDM','T2DM','both','ClinicLocation','No.column.name','IncomeLevel','BLACERISK')) %>%
+obj1 <- obj1 %>% mutate(koh.gp = case_when(koh.counts == 0 ~ 'None',
+                                           koh.counts == 1 ~ 'One',
+                                           koh.counts > 1 ~ 'Multiple'))
+obj1$koh.gp <- factor(obj1$koh.gp, levels = c('None', 'One', 'Multiple'))
+obj1 %>% select(c('koh.gp','age','Sex.long','avg.bmi','HTN','PreDM','T2DM','both','ClinicLocation','No.column.name','IncomeLevel','BLACERISK')) %>%
    gtsummary::tbl_summary(
-     by = KOH.cat,
+     by = koh.gp,
      include = c(age, Sex.long, avg.bmi, HTN, PreDM, T2DM, both, ClinicLocation, No.column.name, IncomeLevel, BLACERISK),
      label = list(
        age ~ 'Age',
@@ -497,6 +501,8 @@ obj1 %>% select(c('KOH.cat','age','Sex.long','avg.bmi','HTN','PreDM','T2DM','bot
      digits = all_continuous() ~ 1
    )  %>%
   bold_labels() %>%
+  add_p() %>%
+  bold_p(t = 0.05) %>%
   modify_table_styling(
     columns = label,
     rows = label == "Income Level",
@@ -603,7 +609,6 @@ obj2 %>% select(c('Group','age','Sex.long','avg.bmi','HTN','PreDM','T2DM','both'
    modify_header(label ~ "**Baseline Characteristics**") %>%
    modify_header(all_stat_cols() ~ "**{level}**<br>\nN = {n}") %>%
   modify_caption("Marshallese and Non-Hispanic White Participant Characteristics") %>%
-   add_overall() %>%
    as_flex_table()
 ```
 
