@@ -1,6 +1,8 @@
-# Repeat DID Models But Use Each Quarter as the Population, Not Each Year
-
+# DID Script 4
 # DID Models
+
+# Repeat DID Models But Use Each Quarter as the Population, Not Each Year, since we also want that metric
+
 #rm(list = ls())
 library(tidyverse)
 library(lubridate)

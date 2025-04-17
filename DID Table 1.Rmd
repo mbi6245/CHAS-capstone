@@ -5,7 +5,11 @@ date: "`r Sys.Date()`"
 output: word_document
 ---
 
+
+
 ```{r setup, include=FALSE}
+# DID Script 2
+
 knitr::opts_chunk$set(echo = TRUE)
 
 library(gtsummary)
@@ -134,5 +138,11 @@ all_visits_per_person %>%
   add_overall() %>%
   as_flex_table()
 
+```
+
+We note that boths groups are fairly similar except for the much higher rate of Type II Diabetes in Marshallese (which was reported in other research.)
+
+```{r, include=FALSE}
+# Continue on to DIDParallelTrends.R
 ```
 

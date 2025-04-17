@@ -1,5 +1,10 @@
 # Run DID manually
 
+# This code only helps understand the DID method. 
+# This is only valid if the observations are independent. 
+# Meaning we only look at patients who aren't there for both time periods. 
+# We need to account for correlation for the longitudinal data, which we do in the real models. 
+
 # Import dataframes DataCleaningDID.R script
 
 
@@ -284,7 +289,7 @@ did_visit_types <- did_visit_types %>% mutate(ER = if_else(ServiceLine == "Emerg
 
 attempt2 <- lm(ER ~ marsh*year  , data = did_visit_types)
 summary(attempt2)
-# all significant! 
+# all significant! but not valid P-values
 
 
 

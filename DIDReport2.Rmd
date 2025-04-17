@@ -5,9 +5,11 @@ date: "`r Sys.Date()`"
 output: word_document
 ---
 
-# Old version with rates per appointment, not per patient
 
 ```{r setup, include=FALSE}
+# DID Script 6
+# Final report
+
 library(tidyverse)
 library(lubridate)
 library(zoo) # to extract month out of the standard date format

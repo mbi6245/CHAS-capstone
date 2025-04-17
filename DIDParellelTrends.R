@@ -1,4 +1,6 @@
-# Pretrends Parallel Trends Assumption and if we have a Balanced Panel
+# DID Script 3
+# Pretrends Parallel Trends Assumption and when we have a Balanced Panel
+
 # Yes generally parallel, but Unbalanced Panel (more patients came at the end)
 
 
@@ -13,10 +15,10 @@ library(tidyverse)
 library(lubridate)
 library(zoo)
 library(rstudioapi)
-library(did)
+# library(did)
 
 
-# ! Repeat these charts and rates with quarter on the denominator! 
+# Repeat these charts and rates with quarter on the denominator! 
 
 
 # Import dataframes DataCleaningDID.R script
@@ -86,10 +88,59 @@ pretrend <- full_join(pretrend, pretrendER )  # add all total patient visits tha
 # Create ER rate 
 pretrend <- pretrend %>% mutate(PCPrate = n/total_visits)
 
+pretrendM <- pretrend %>% filter(marsh == 1)
 
-# I don't know how to do a running total in R so I did it in Excel  
-write.csv(pretrend, "pretrend.csv")
-pretrend <- read.csv("pretrend.csv")
+# we don't have 4 previous quarters to estimate, so we have to impute our best guess for 2016.4
+# I just copied the number for 2017.1. 
+# Its not a perfect estimate but I figure it is pretty good for this pretrend that just needs to be visualized
+
+est_val <- as.numeric(pretrendM[1, 3])
+estimate <- as.data.frame(t(c(2016.4, 1, est_val))) # , NA, NA, NA
+colnames(estimate) <- colnames(pretrendM[ , 1:3])
+length(estimate)
+length(pretrendM)
+pretrendM <- full_join(estimate, pretrendM)
+
+rm(estimate)
+rm(est_val)
+
+running_total_M <- c()
+for(i in 4:nrow(pretrendM)){
+  x <- sum(pretrendM[ (i-3), 3], pretrendM[ (i-2), 3], pretrendM[ (i-1), 3], pretrendM[ i, 3])
+  running_total_M <- c(running_total_M, x)
+}
+
+running_total_M <- c( NA, NA, NA, running_total_M)
+pretrendM <- cbind(pretrendM, running_total_M)
+
+  
+pretrendNHW <- pretrend %>% filter(marsh == 0)
+
+est_val <- as.numeric(pretrendNHW[1, 3])
+estimate <- as.data.frame(t(c(2016.4, 0, est_val))) # , NA, NA, NA # Need to change to Non Marsh == 0
+colnames(estimate) <- colnames(pretrendNHW[ , 1:3])
+length(estimate)
+length(pretrendNHW)
+pretrendNHW <- full_join(estimate, pretrendNHW)
+
+rm(estimate)
+rm(est_val)
+
+running_total_NHW <- c()
+for(i in 4:nrow(pretrendNHW)){
+  x <- sum(pretrendNHW[ (i-3), 3], pretrendNHW[ (i-2), 3], pretrendNHW[ (i-1), 3], pretrendNHW[ i, 3])
+  running_total_NHW <- c(running_total_NHW, x)
+}
+running_total_NHW <- c( NA, NA, NA, running_total_NHW)
+pretrendNHW <- cbind(pretrendNHW, running_total_NHW)
+
+
+colnames(pretrendNHW)[7] <- c("total_running")
+
+colnames(pretrendM)[7] <- c("total_running")
+pretrend <- rbind(pretrendM, pretrendNHW)
+
+
 pretrend <- pretrend %>% mutate(PCPrate_running = n/total_running)
 
 
@@ -126,6 +177,61 @@ colnames(pretrendPCP)[3] <- c("ServiceLinePCP")
 pretrend2 <- full_join(pretrend2, pretrendPCP )  # add all total patient visits that quarter to 
 
 pretrend2 <- pretrend2 %>% mutate(PCPrate = PCP/total_visits)
+
+
+
+
+pretrend2M <- pretrend2 %>% filter(marsh == 1)
+
+pretrend2NHW <- pretrend2 %>% filter(marsh == 0)
+
+# Stopped here. Need to fix totals to match excel
+pretrend2M[5, 3]
+running_total_M <- c()
+for(i in 5:nrow(pretrend2M)){
+  x <- sum(pretrendM[ (i-3), 3], pretrendM[ (i-2), 3], pretrendM[ (i-1), 3], pretrendM[ i, 3])
+  running_total_M <- c(running_total_M, x)
+}
+
+running_total_M <- c( NA, NA, NA, running_total_M)
+pretrendM <- cbind(pretrendM, running_total_M)
+
+
+pretrendNHW <- pretrend %>% filter(marsh == 0)
+
+running_total_NHW <- c()
+for(i in 4:nrow(pretrendNHW)){
+  x <- sum(pretrendNHW[ (i-3), 3], pretrendNHW[ (i-2), 3], pretrendNHW[ (i-1), 3], pretrendNHW[ i, 3])
+  running_total_NHW <- c(running_total_NHW, x)
+}
+running_total_NHW <- c( NA, NA, NA, running_total_NHW)
+pretrendNHW <- cbind(pretrendNHW, running_total_NHW)
+
+
+colnames(pretrendNHW)[7] <- c("total_running")
+
+colnames(pretrendM)[7] <- c("total_running")
+pretrend <- rbind(pretrendM, pretrendNHW)
+
+
+pretrend <- pretrend %>% mutate(PCPrate_running = n/total_running)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 # change the total per year to the running total for the last 4 quarters so that it doesn't have a sharp change at the year mark...
 # this is much easier to do in excel
