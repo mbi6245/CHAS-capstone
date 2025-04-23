@@ -171,12 +171,12 @@ pretrend %>%  filter(quarter > 2017.2) %>%
 pretrend2 <- all_visit_types_quarter %>% filter( Date >= "2017-01-01", Date <= "2019-05-31" ) %>% group_by(quarter, marsh) %>% count()
 colnames(pretrend2)[3] <- c("total_visits")
 
-colnames(pretrendPCP)[4] <- c("PCP")
+#colnames(pretrendPCP)[4] <- c("PCP") # keep this as "n" for later mutated rate
 
 colnames(pretrendPCP)[3] <- c("ServiceLinePCP")
 pretrend2 <- full_join(pretrend2, pretrendPCP )  # add all total patient visits that quarter to 
 
-pretrend2 <- pretrend2 %>% mutate(PCPrate = PCP/total_visits)
+pretrend2 <- pretrend2 %>% mutate(PCPrate = n/total_visits)
 
 
 
@@ -185,63 +185,35 @@ pretrend2M <- pretrend2 %>% filter(marsh == 1)
 
 pretrend2NHW <- pretrend2 %>% filter(marsh == 0)
 
-# Stopped here. Need to fix totals to match excel
 pretrend2M[5, 3]
 running_total_M <- c()
 for(i in 5:nrow(pretrend2M)){
-  x <- sum(pretrendM[ (i-3), 3], pretrendM[ (i-2), 3], pretrendM[ (i-1), 3], pretrendM[ i, 3])
+  x <- sum(pretrend2M[ (i-3), 3], pretrend2M[ (i-2), 3], pretrend2M[ (i-1), 3], pretrend2M[ i, 3])
   running_total_M <- c(running_total_M, x)
 }
 
-running_total_M <- c( NA, NA, NA, running_total_M)
-pretrendM <- cbind(pretrendM, running_total_M)
+running_total_M <- c( NA, NA, NA, NA, running_total_M)
+pretrend2M <- cbind(pretrend2M, running_total_M)
 
 
-pretrendNHW <- pretrend %>% filter(marsh == 0)
 
 running_total_NHW <- c()
-for(i in 4:nrow(pretrendNHW)){
-  x <- sum(pretrendNHW[ (i-3), 3], pretrendNHW[ (i-2), 3], pretrendNHW[ (i-1), 3], pretrendNHW[ i, 3])
+for(i in 5:nrow(pretrend2NHW)){
+  x <- sum(pretrend2NHW[ (i-3), 3], pretrend2NHW[ (i-2), 3], pretrend2NHW[ (i-1), 3], pretrend2NHW[ i, 3])
   running_total_NHW <- c(running_total_NHW, x)
 }
-running_total_NHW <- c( NA, NA, NA, running_total_NHW)
-pretrendNHW <- cbind(pretrendNHW, running_total_NHW)
+running_total_NHW <- c( NA, NA, NA, NA, running_total_NHW)
+pretrend2NHW <- cbind(pretrend2NHW, running_total_NHW)
 
 
-colnames(pretrendNHW)[7] <- c("total_running")
+colnames(pretrend2NHW)[7] <- c("total_running")
 
-colnames(pretrendM)[7] <- c("total_running")
-pretrend <- rbind(pretrendM, pretrendNHW)
-
-
-pretrend <- pretrend %>% mutate(PCPrate_running = n/total_running)
+colnames(pretrend2M)[7] <- c("total_running")
+pretrend2 <- rbind(pretrend2M, pretrend2NHW)
 
 
+pretrend2 <- pretrend2 %>% mutate(PCPrate_running = n/total_running)
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# change the total per year to the running total for the last 4 quarters so that it doesn't have a sharp change at the year mark...
-# this is much easier to do in excel
-# sorry this code will be clunky
-#!
-write.csv(pretrend2, "pretrend2.csv")
-pretrend2 <- read.csv("pretrend2.csv")
-
-
-pretrend2 <- pretrend2 %>% mutate(PCPrate_running = PCP/Total_running)
 
 
 

@@ -173,6 +173,8 @@ colnames(PCP_per_person)[3] <- "sum_PCP"
 colnames(ER_per_person)[3] <- "sum_ER"
 # 
 length(unique(did_visit_types_year$UniqueIdentifier))
+# 19062
+
 # # length is different than the nrow/2. Some not in both time periods? 
 # 
 # nrow(ER_per_person)
@@ -306,128 +308,8 @@ tbl_regression(gee_mod_DID_ER_yr_best, intercept = TRUE,
     rows = label == "Year",
     footnote = "Year relative to CHW hiring in 2019")
 
-#################################################################################################
-
-# previous models
-
-
-
-
-gee_mod_DID_PCP_yr <- geeglm(PCP ~ marsh*year_center, 
-                          data = did_visit_types_year,
-                          id = UniqueIdentifier,
-                          family = gaussian, 
-                          scale.fix = T, # this sets phi = 1
-                          corstr = "exchangeable")
-#print(gee_mod_DID_PCP)
-summary(gee_mod_DID_PCP_yr)
-
-
-# Call:
-#   geeglm(formula = PCP ~ marsh * year_center, family = gaussian, 
-#          data = did_visit_types_year, id = UniqueIdentifier, corstr = "exchangeable", 
-#          scale.fix = T)
-# 
-# Coefficients:
-#   Estimate   Std.err    Wald Pr(>|W|)    
-# (Intercept)        0.084075  0.000896 8813.17  < 2e-16 ***
-#   marsh             -0.010641  0.007963    1.79     0.18    
-# year_center        0.015998  0.000453 1247.24  < 2e-16 ***
-#   marsh:year_center -0.017449  0.003240   29.01  7.2e-08 ***
-#   ---
-#   Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
-# 
-# Correlation structure = exchangeable 
-# Scale is fixed.
-# 
-# Link = identity 
-# 
-# Estimated Correlation Parameters:
-#   Estimate Std.err
-# alpha  -0.0172 0.00149
-# Number of clusters:   186070  Maximum cluster size: 2 
-
-gee_mod_DID_ER_yr <- geeglm(ER ~ marsh*year_center, 
-                         data = did_visit_types_year,
-                         id = UniqueIdentifier,
-                         family = gaussian, 
-                         scale.fix = T, # this sets phi = 1
-                         corstr = "exchangeable")
-#print(gee_mod_DID_ER)
-summary(gee_mod_DID_ER_yr)
-
-# Call:
-#   geeglm(formula = ER ~ marsh * year_center, family = gaussian, 
-#          data = did_visit_types_year, id = UniqueIdentifier, corstr = "exchangeable", 
-#          scale.fix = T)
-# 
-# Coefficients:
-#   Estimate   Std.err    Wald Pr(>|W|)    
-# (Intercept)        0.036872  0.000613 3623.86  < 2e-16 ***
-#   marsh              0.012142  0.006521    3.47    0.063 .  
-# year_center        0.003297  0.000295  125.11  < 2e-16 ***
-#   marsh:year_center -0.011148  0.002491   20.03  7.6e-06 ***
-#   ---
-#   Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
-# 
-# Correlation structure = exchangeable 
-# Scale is fixed.
-# 
-# Link = identity 
-# 
-# Estimated Correlation Parameters:
-#   Estimate Std.err
-# alpha     0.04 0.00103
-# Number of clusters:   186070  Maximum cluster size: 2
-gee_mod_DID_ER$coefficients[1]
-
-# ! how to extract pvalue? 
-
-
-# Extract/ Calculate the rate with the predict function
-# # this will give us the same response because it is the same data.
-# but we could also use it to predict future years
-
- predict(gee_mod_DID_ER, type =  "response", newdata = data.frame( marsh = 0, year_center = 0))
- 
- 
- 
-
-   
-   
-   Marshallese_yr_2019 <- did_visit_types_year %>% filter(marsh == 1, year == 2019) 
- length(unique(Marshallese_yr_2019$UniqueIdentifier))
- # 157 Marshallese visited these 2 clinics this year
- 
- # # compare to actual counts
- # predict(gee_mod_DID_ER, type =  "response", newdata = data.frame( marsh = 0, year_center = 0))* length(unique(Marshallese_yr_2019$UniqueIdentifier))
-# 5.79 
-  # sum(Marshallese_yr_2019$ER)
- # # 58
- # 
- 
- rate <- predict(gee_mod_DID_ER, type =  "response", newdata = data.frame( marsh = 0, year_center = 0))
- rate*nrow(Marshallese_yr_2019)
- # 22.5 
- sum(Marshallese_yr_2019$ER)
-# still doesn't match... !
- 
- # NHW_yr <- did_visit_types_year %>% filter(marsh == 0, year == 2019) 
- # length(unique(NHW_yr$UniqueIdentifier))
- # #  NonHispanic Whites visited these 2 clinics this year
- 
-# 
-# predict(gee_mod_DID_ER, type =  "response", newdata = data.frame( marsh = 0, year_center = 0))*100
-# number of visits per Marshallese 100 patients in year 2019
-
-
-# From Machine Learning HW
-# when you supply a new 1 line dataframe it will give me the 1 predicted response for covariates in the
-
-
-
-
-
+###############################################################
+###############################################################
 ###############################################################
 # Only Correlated Data
 
@@ -527,5 +409,3 @@ summary(gee_mod_DID_PCP_yr_bal)
 # alpha  0.00487 0.00153
 # Number of clusters:   132115  Maximum cluster size: 2 
 
-
-# !are total interactions growing? Even if ER rates are going up.
