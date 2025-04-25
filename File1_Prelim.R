@@ -41,7 +41,7 @@ diag$PreDM[diag$PreDM == 1 & diag$T2DM == 1] <- 0
 a1c$Date <- mdy(a1c$Date)
 a1c.nona <- a1c %>% filter(!is.na(A1c) & !is.na(Date)) %>% distinct()
 
-# calculating appropriate BMI based on height and weight for patients with extreme or missing values of BMI in roiginal BMI dataset
+# calculating appropriate BMI based on height and weight for patients with extreme or missing values of BMI in original BMI dataset
 bmi$Date <- mdy(bmi$Date)
 bmi.nona <- bmi %>% filter(!is.na(Date) & !is.na(BMI)) %>% distinct() %>% filter(BMI<=250) # filter out extreme values
 missing_bmi$LastBMIDate <- mdy(missing_bmi$LastBMIDate)
@@ -73,25 +73,22 @@ diag.nona <- diag.nona %>% mutate(Diabetes = ifelse((PreDM == 1 | T2DM == 1), 1,
 
 # Remove anyone under the age of 18
 age <- panel %>% select(c("UniqueIdentifier","age"))
-a1c.nona.18 <- left_join(a1c.nona, age, by = "UniqueIdentifier")
-a1c.nona.18 <- a1c.nona.18 %>% filter(age >= 18)
-
-bmi.nona.18 <- left_join(bmi.nona, age, by = "UniqueIdentifier")
-bmi.nona.18 <- bmi.nona.18 %>% filter(age >= 18)
+# function to remove anyone under the age of 18
+adult <- function(data) {
+  newdata <- left_join(data, age, by = "UniqueIdentifier") %>% filter(age >= 18)
+  return(newdata)
+}
+a1c.nona.18 <- adult(a1c.nona)
+bmi.nona.18 <- adult(bmi.nona)
+# taking average of all BMI measurements since we are not using it as a time-varying covariate
 bmi.nona.18 <- bmi.nona.18 %>% select(-age)
-avg.bmi <- bmi.nona.18 %>% group_by(UniqueIdentifier) %>% mutate(avg.bmi = mean(BMI)) %>% slice_head() %>% select(c(UniqueIdentifier, avg.bmi))
+avg.bmi <- bmi.nona.18 %>% group_by(UniqueIdentifier) %>% mutate(avg.bmi = mean(BMI)) %>% slice_head() %>% 
+  select(c(UniqueIdentifier, avg.bmi)) 
 
-bp.nona.18 <- left_join(bp.nona, age, by = "UniqueIdentifier")
-bp.nona.18 <- bp.nona.18 %>% filter(age >= 18)
-
-enc.nona.18 <- left_join(enc.nona, age, by = "UniqueIdentifier")
-enc.nona.18 <- enc.nona.18 %>% filter(age >= 18)
-
-diag.nona.18 <- left_join(diag.nona, age, by = "UniqueIdentifier")
-diag.nona.18 <- diag.nona.18 %>% filter(age >= 18)
-
-koh.attend.18 <- left_join(koh.attend, age, by = "UniqueIdentifier")
-koh.attend.18 <- koh.attend.18 %>% filter(age >= 18)
+bp.nona.18 <- adult(bp.nona)
+enc.nona.18 <- adult(enc.nona)
+diag.nona.18 <- adult(diag.nona)
+koh.attend.18 <- adult(koh.attend)
 
 # patients with KOHParticipant = 1 but are not in KOH attendance dataset
 panel.koh <- panel %>% filter(KOHParticipant == 1 & age>=18)
@@ -102,16 +99,13 @@ panel <- panel %>% mutate(Sex.long = case_when(Sex == 'M' ~ 'Male',
                                                Sex == 'F' ~ 'Female'))
 panel.18 <- panel %>% filter(age >= 18)
 
-marsh <- panel.18 %>% filter(Race == 'Marshallese')
-lang <- panel.18 %>% filter(Language == 'Marshallese')
-
-# create our population of non-hispanic whites and marshallese (language = marsh or race = marsh or KOH = 1) 
+# create our population of non-hispanic white and marshallese (language = marsh or race = marsh or KOH = 1) 
 targetpop <- panel.18 %>% filter(Race == 'Marshallese' | Language == 'Marshallese' | KOHParticipant == 1 | (Race == 'White' & Ethnicity == 'Not Hispanic or Latino'))
 
-# remove any homeless population
+# remove homeless population
 targetpop <- targetpop %>% filter(No.column.name != 'Homeless Shelter' & No.column.name != 'Street')
 
-# make marshallese indicator variable
+# make marshallese an indicator variable
 targetpop <- targetpop %>% 
   mutate(Marsh = ifelse((Race == 'Marshallese' | Language == 'Marshallese' | KOHParticipant == 1), 1, 0),
          Group = ifelse(Marsh == 1, "Marshallese", "Non-Marshallese"))

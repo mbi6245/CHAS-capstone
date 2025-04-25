@@ -17,12 +17,20 @@ setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 fp_gdp = file.path(getwd(), "File1_Prelim.R")
 source(fp_gdp)
 
-# get all KOH participants with hypertension
-koh.htn <- koh.table1 %>% filter(HTN == 1)
-# isolate the patient IDs
-koh.htn.patlist <- koh.htn %>% select("UniqueIdentifier")
-# select systolic BP measures for only KOH patients with hypertension
-koh.bp <- left_join(koh.htn.patlist, bp.nona.18, by = "UniqueIdentifier") %>% filter(Systolic >= 50) %>% select(-age) # remove any extreme measures (i.e. SBP < 50)
+##################################
+# HYPERTENSION DATASET PREPARATION
+##################################
+
+obj1.subset <- function(var, data) {
+  koh <- koh.table1 %>% filter(var == 1) 
+  patlist <- koh %>% select("UniqueIdentifier")
+  koh.var <- left_join(patlist, data, by="UniqueIdentifier") %>% select(-age)
+  return(koh.var)
+}
+koh.bp <- koh.subset(HTN, bp.nona.18) %>% filter(Systolic >= 50) # remove any extreme measures (i.e. SBP < 50)
+
+# count number of SBP readings per patient and subset BP data for eligible patients
+
 
 # count number of SBP readings per patient
 koh.bp.counts <- koh.bp %>% group_by(UniqueIdentifier) %>% count(name = "bp.counts")
@@ -154,7 +162,10 @@ obj1.bp.lme <- obj1.bp.lme %>% mutate(KOH.none = ifelse(koh.counts == 0, 1, 0),
                                       KOH.mult = ifelse(koh.counts > 1, 1, 0))
 obj1.bp.lme.full <- left_join(obj1.bp.lme, obj1.bp.cov, by="UniqueIdentifier")
 
-## now doing the same for patients with diabetes ##
+###############################
+# DIABETES DATASET PREPARATION
+###############################
+
 # get KOH patients with diabetes
 koh.t2dm <- koh.table1 %>% filter(Diabetes == 1)
 # isolate the patient IDs
