@@ -21,16 +21,12 @@ source(fp_gdp)
 # HYPERTENSION DATASET PREPARATION
 ##################################
 
-obj1.subset <- function(var, data) {
-  koh <- koh.table1 %>% filter(var == 1) 
-  patlist <- koh %>% select("UniqueIdentifier")
-  koh.var <- left_join(patlist, data, by="UniqueIdentifier") %>% select(-age)
-  return(koh.var)
-}
-koh.bp <- koh.subset(HTN, bp.nona.18) %>% filter(Systolic >= 50) # remove any extreme measures (i.e. SBP < 50)
-
-# count number of SBP readings per patient and subset BP data for eligible patients
-
+# get pts with htn
+koh.htn <- koh.table1 %>% filter(HTN == 1)
+# isolate the patient ids
+koh.htn.patlist <- koh.htn %>% select("UniqueIdentifier")
+# select bp measures for only kohn htn pts
+koh.bp <- left_join(koh.htn.patlist, bp.nona.18, by = "UniqueIdentifier") %>% filter(Systolic >= 50) %>% select(-age) 
 
 # count number of SBP readings per patient
 koh.bp.counts <- koh.bp %>% group_by(UniqueIdentifier) %>% count(name = "bp.counts")
