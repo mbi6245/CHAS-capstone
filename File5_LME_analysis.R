@@ -477,6 +477,3 @@ kable(obj2_res_bp, align = c("c", "c", "c", "c")) %>%
   pack_rows("SBP Longitudinal", 1, 7) %>%
   column_spec(2, width = "3cm") %>%  
   column_spec(3, width = "3cm")
-
-# Display both A1c and SBP on one table
-kable(obj2_res) %>% pack_rows("A1c longitudinal", 1, 3) %>% pack_rows("SBP longitudinal", 4, 6)

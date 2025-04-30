@@ -4,6 +4,7 @@
 ###### Creates A1c and BP Data sets for impact of KOH analysis #######
 ######################################################################
 
+rm(list=ls())
 # load packages
 library(dplyr)
 library(tidyverse)
